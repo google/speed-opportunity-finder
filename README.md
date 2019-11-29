@@ -1,0 +1,2 @@
+- Lighthouse service requires node v10 or above due to lighthouse dependance on same.
+- Lighthouse service requires as least an F2 instance class to run.
