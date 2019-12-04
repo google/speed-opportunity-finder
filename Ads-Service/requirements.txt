@@ -1,3 +1,4 @@
 bottle
 googleads
 google-cloud-firestore
+google-cloud-logging

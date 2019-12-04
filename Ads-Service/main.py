@@ -1,55 +1,97 @@
 # Lint as: python3
-"""TODO(adamread): DO NOT SUBMIT without one-line documentation for ads-service.
+"""This service retrieves and forwards landing page reports in CSV format.
 
-TODO(adamread): DO NOT SUBMIT without a detailed description of ads-service.
+The Ads service provides a way to fetch Ads landing page reports and return them
+in CSV format to the caller. The credentials used must be saved previously in
+the app engine project's firestore datastore using the agency-ads collection,
+config document, and credentials field. The last_run field is also used to store
+the last date the report was fetched.
 """
 
+import datetime
+import logging
+
 from bottle import Bottle
-from bottle import route
-from bottle import response
 from bottle import HTTPError
+from bottle import request
+from bottle import response
+from googleads import adwords
+
 from google.cloud import firestore
 import google.cloud.exceptions
-from google.cloud import error_reporting
-from googleads import adwords
-from datetime import date
-from datetime import timedelta
-from google.cloud import bigquery
-
+import google.cloud.logging
 
 app = Bottle()
-logger = error_reporting.Client()
 
-@app.route("/ads")
+logging_client = google.cloud.logging.Client()
+logging_handler = logging_client.get_default_handler()
+logger = logging.getLogger('Ads-Service')
+logger.setLevel(logging.INFO)
+logger.addHandler(logging_handler)
+
+
+@app.route('/ads')
 def export_landing_page_report():
+  """This route triggers the download of the Ads landing page report.
+
+  The landing page report for the client is downloaded using credentials stored
+  in the project firestore datastore. The report is downloaded either for the
+  last 30 days if never run before, or from the last run date to today if there
+  is a date stored in firestore. The last run date is updated after the report
+  is downloaded from Ads.
+
+  Returns:
+    The landing page report in CSV format
+
+  Raises:
+    HTTPError: Used to cause bottle to return a 500 error to the client.
+  """
+  customer_id = request.query.get('cid')
+  if not customer_id:
+    logger.error('Client customer id (cid) not included in request')
+    raise HTTPError(400,
+                    'Customer client id not provided as cid query parameter.')
+
+  today = datetime.date.today().strftime('%Y%m%d')
   storage_client = firestore.Client()
+
   try:
-    storage_collection = storage_client.collection('agency_ads')
-    ads_credentials = storage_collection.document('credentials').get()
+    credentials_doc = (storage_client.collection('agency_ads')
+                       .document('credentials').get())
+    developer_token = credentials_doc.get('developer_token')
+    client_id = credentials_doc.get('client_id')
+    client_secret = credentials_doc.get('client_secret')
+    refresh_token = credentials_doc.get('refresh_token')
+    ads_credentials = ('adwords:\n' +
+                       f' client_customer_id: {customer_id}\n'
+                       f' developer_token: {developer_token}\n' +
+                       f' client_id: {client_id}\n' +
+                       f' client_secret: {client_secret}\n' +
+                       f' refresh_token: {refresh_token}')
   except google.cloud.exceptions.NotFound:
-    logger.report('Unable to load ads credentials.')
-    logger.report_exception()
+    logger.exception('Unable to load ads credentials.')
     raise HTTPError(500, 'Unable to load Ads credentials.')
 
   try:
-    last_run_date = storage_collection.document('last_run').get()
-    last_run_date = date.fromisoformat(last_run_date)
-  except google.cloud.exceptions.NotFound:
-    logger.report('Last run date not found in firestore document.')
+    config_doc = (storage_client.collection('agency_ads')
+                  .document('config').get())
+    last_run_date = config_doc.get('last_run')
+    last_run_date = datetime.date.fromisoformat(last_run_date)
+  except KeyError:
+    logger.info('Last run date not found in firestore document.')
     last_run_date = False
 
   ads_client = adwords.AdWordsClient.LoadFromString(ads_credentials)
   landing_page_query = adwords.ReportQueryBuilder()
-  # selecting campaign attributes, unexpanded final url, click type, device,
+  # selecting campaign attributes, unexpanded final url, device,
   # date, and all of the landing page metrics.
   landing_page_query.Select(
       'CampaignId', 'CampaignName, CampaignStatus',
-      'UnexpandedFinalUrlString', 'Date', 'Device', 'ClickType',
-      'ActiveViewCpm', 'ActiveViewCtr', 'ActiveViewImpressions',
-      'ActiveViewMeasurability', 'ActiveViewMeasurableCost',
-      'ActiveViewMeasurableImpressions', 'ActiveViewViewability',
-      'AllConversions', 'AverageCost', 'AverageCpc', 'AverageCpe',
-      'AverageCpm', 'AverageCpv', 'AveragePosition', 'Clicks',
+      'UnexpandedFinalUrlString', 'Date', 'Device', 'ActiveViewCpm',
+      'ActiveViewCtr', 'ActiveViewImpressions', 'ActiveViewMeasurability',
+      'ActiveViewMeasurableCost', 'ActiveViewMeasurableImpressions',
+      'ActiveViewViewability', 'AllConversions', 'AverageCost', 'AverageCpc',
+      'AverageCpe', 'AverageCpm', 'AverageCpv', 'AveragePosition', 'Clicks',
       'ConversionRate', 'Conversions', 'ConversionValue', 'Cost',
       'CostPerConversion', 'CrossDeviceConversions', 'Ctr', 'EngagementRate',
       'Engagements', 'Impressions', 'InteractionRate', 'Interactions',
@@ -60,17 +102,21 @@ def export_landing_page_report():
   if not last_run_date:
     landing_page_query.During('LAST_30_DAYS')
   else:
-    today = date.today().strftime('%Y%m%d')
-    start_date = (last_run_date + timedelta(days=1)).strftime('%Y%m%d')
+    start_date = (last_run_date + datetime.timedelta(days=1)).strftime('%Y%m%d')
     landing_page_query.During(start_date=start_date, end_date=today)
   landing_page_query = landing_page_query.Build()
 
   report_downloader = ads_client.GetReportDownloader(version='v201809')
   try:
-    landing_page_report = report_downloader.DownloadReportAsStringWithAwql(landing_page_query, 'CSV')
+    landing_page_report = (report_downloader.DownloadReportAsStringWithAwql(
+        landing_page_query, 'CSV', skip_report_header=True,
+        skip_report_summary=True))
   except Exception as e:
-    logger.report('Problem with retrieving landing page report')
-    logger.report_exception()
+    logger.exception('Problem with retrieving landing page report')
     raise HTTPError(500, 'Unable to retrieve landing page report %s' % e)
+
+  (storage_client.collection('agency_ads').document('config')
+   .update({'config.last_run': today}))
+
   response.set_header('Content-Type', 'text/csv')
   return landing_page_report
