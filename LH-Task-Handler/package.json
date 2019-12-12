@@ -1,20 +1,21 @@
 {
-  "name": "lh-task-handler",
-  "version": "1.0.0",
-  "description": "Cloud task handler for agency dashboard lighthouse audits.",
-  "main": "lh-task-handler.js",
-  "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
-  },
-  "author": "adamread",
-  "license": "Apache-2.0",
-  "dependencies": {
-    "@google-cloud/bigquery": "^4.5.0",
-    "express": "^4.17.1",
-    "request": "^2.88.0"
-  },
-  "devDependencies": {
-    "eslint": "^6.7.2",
-    "eslint-config-google": "^0.14.0"
-  }
+    "name": "lh-task-handler",
+    "version": "1.0.0",
+    "description": "Cloud task handler for agency dashboard lighthouse audits.",
+    "main": "lh-task-handler.js",
+    "scripts": {
+        "start": "node lh-task-handler.js",
+        "test": "echo \"Error: no test specified\" && exit 1"
+    },
+    "author": "adamread",
+    "license": "Apache-2.0",
+    "dependencies": {
+        "@google-cloud/bigquery": "^4.5.0",
+        "express": "^4.17.1",
+        "request": "^2.88.0"
+    },
+    "devDependencies": {
+        "eslint": "^6.7.2",
+        "eslint-config-google": "^0.14.0"
+    }
 }
