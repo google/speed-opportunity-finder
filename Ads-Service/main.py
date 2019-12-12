@@ -52,7 +52,6 @@ def export_landing_page_report():
     raise HTTPError(400,
                     'Customer client id not provided as cid query parameter.')
 
-  today = datetime.date.today().strftime('%Y%m%d')
   storage_client = firestore.Client()
 
   try:
@@ -103,6 +102,7 @@ def export_landing_page_report():
     landing_page_query.During('LAST_30_DAYS')
   else:
     start_date = (last_run_date + datetime.timedelta(days=1)).strftime('%Y%m%d')
+    today = datetime.date.today().strftime('%Y%m%d')
     landing_page_query.During(start_date=start_date, end_date=today)
   landing_page_query = landing_page_query.Build()
 
@@ -116,7 +116,7 @@ def export_landing_page_report():
     raise HTTPError(500, 'Unable to retrieve landing page report %s' % e)
 
   (storage_client.collection('agency_ads').document('config')
-   .update({'config.last_run': today}))
+   .update({'last_run': datetime.date.today().isoformat()}))
 
   response.set_header('Content-Type', 'text/csv')
   return landing_page_report
