@@ -51,7 +51,7 @@ app.all(/.*/, bodyParser.json(), (req, res) => {
   const testUrl = req.body.url || req.query.url;
   try {
     const checkURL = new URL(testUrl);
-    if (checkURL.protocol !== 'http:' || checkURL.protocol !== 'https:') {
+    if (checkURL.protocol !== 'http:' && checkURL.protocol !== 'https:') {
       throw new Error('Invalid protocol, must be http or https.');
     }
   } catch (e) {
