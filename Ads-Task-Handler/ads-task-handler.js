@@ -14,10 +14,11 @@ app.enable('trust proxy');
  *
  * @param {Object[]} reportRows The landing page report in the form of an array
  * of objects representing a row from the report.
+ * @param {string} cid The cid of the client the report is for.
  */
-function insertLPintoBQ(reportRows) {
-  for (r of reportRows) {
-    let baseUrl = r.UnexpandedFinalUrlString;
+function insertLPintoBQ(reportRows, cid) {
+  for (row of reportRows) {
+    let baseUrl = row.UnexpandedFinalUrlString;
     // removes parameters after ignore and, if the url then ends with a lone ?,
     // it too is removed.
     const ignore = reportUrl.indexOf('{ignore}');
@@ -27,7 +28,15 @@ function insertLPintoBQ(reportRows) {
     if (baseUrl.endsWith('?')) {
       baseUrl = baseUrl.slice(0, -1);
     }
-    r.BaseUrl = baseUrl;
+    row.BaseUrl = baseUrl;
+    row.CID = cid;
+    // Ads reports return percentages as strings with %, so we change them back
+    // to numbers between 0 and 1
+    for (key of Object.keys(row)) {
+      if (typeof row[key] === 'string' &&row[key].endsWith('?')) {
+        row[key] = (row[key].slice(0, -1)) / 100;
+      }
+    }
   }
 
   const bigquery = new BigQuery();
@@ -61,7 +70,7 @@ app.get('*', (req, res) => {
         }
         try {
           parseCsv(body, {'columns': true}, function(err, adsRows) {
-            insertLPintoBQ(adsRows);
+            insertLPintoBQ(adsRows, cid);
           });
         } catch (e) {
           res.status(500).json({'error': e, 'cause': 'BQ'});
