@@ -1,3 +1,3 @@
 runtime: nodejs10
 env: standard
-service: lh-task-handler
+service: ads-task-handler
