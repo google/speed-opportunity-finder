@@ -103,6 +103,9 @@ def export_landing_page_report():
   else:
     start_date = (last_run_date + datetime.timedelta(days=1)).strftime('%Y%m%d')
     today = datetime.date.today().strftime('%Y%m%d')
+    if today >= start_date:
+      logger.error('Last run date either today or corrupt.')
+      raise HTTPError(500, 'Last run date today or corrupt')
     landing_page_query.During(start_date=start_date, end_date=today)
   landing_page_query = landing_page_query.Build()
 

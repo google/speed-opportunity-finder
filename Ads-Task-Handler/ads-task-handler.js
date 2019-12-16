@@ -4,79 +4,73 @@
 const express = require('express');
 const parseCsv = require('csv-parse');
 const {BigQuery} = require('@google-cloud/bigquery');
-const request = require('request');
+const request = require('request-promise-native');
+const {Logging} = require('@google-cloud/logging');
 
 const app = express();
 app.enable('trust proxy');
 
-/**
- * Takes a landing page report and inserts the values into bigquery.
- *
- * @param {Object[]} reportRows The landing page report in the form of an array
- * of objects representing a row from the report.
- * @param {string} cid The cid of the client the report is for.
- */
-function insertLPintoBQ(reportRows, cid) {
-  for (row of reportRows) {
-    let baseUrl = row.UnexpandedFinalUrlString;
-    // removes parameters after ignore and, if the url then ends with a lone ?,
-    // it too is removed.
-    const ignore = reportUrl.indexOf('{ignore}');
-    if (ignore !== -1) {
-      baseUrl = baseUrl.slice(0, ignore);
-    }
-    if (baseUrl.endsWith('?')) {
-      baseUrl = baseUrl.slice(0, -1);
-    }
-    row.BaseUrl = baseUrl;
-    row.CID = cid;
-    // Ads reports return percentages as strings with %, so we change them back
-    // to numbers between 0 and 1
-    for (key of Object.keys(row)) {
-      if (typeof row[key] === 'string' &&row[key].endsWith('?')) {
-        row[key] = (row[key].slice(0, -1)) / 100;
-      }
-    }
-  }
+const logging = new Logging(process.env.GOOGLE_CLOUD_PROJECT);
+const log = logging.log('agency-ads-task');
 
-  const bigquery = new BigQuery();
-  const table = bigquery.dataset('agency_dashboard').table('ads_data');
-  table.insert(reportRows, insertHandler);
 
-  /**
-   * Rethrows an error if one is passed from bigquery.table.insert.
-   *
-   * @param {object} err The error thrown by bigquery.
-   */
-  function insertHandler(err) {
-    if (err) {
-      throw err;
-    }
-  }
-}
-
-app.get('*', (req, res) => {
+app.get('*', async (req, res, next) => {
   const cid = req.query.cid;
   if (!cid) {
+    log.error('Missing query parameter');
     res.status(400).json({'error': 'Missing query parameter'});
+    return;
   }
 
-  const serviceName = process.env.GAE_SERVICE;
-  const projectName = process.env.GOOGLE_CLOUD_PROJECT;
-  request(`${serviceName}.${projectName}.appspot.com/ads?cid=${cid}`,
-      (err, resp, body) => {
-        if (err) {
-          res.status(500).json({'error': err.body, 'cause': 'ADS'});
-        }
-        try {
-          parseCsv(body, {'columns': true}, function(err, adsRows) {
-            insertLPintoBQ(adsRows, cid);
-          });
-        } catch (e) {
-          res.status(500).json({'error': e, 'cause': 'BQ'});
-        }
-      });
+  try {
+    const projectName = process.env.GOOGLE_CLOUD_PROJECT;
+    const adsReport = await request(
+        `http://ads-service.${projectName}.appspot.com/ads?cid=${cid}`);
+    const adsRows = parseCsv(adsReport,
+        {'columns': true, 'skip_empty_lines': true});
+    log.debug(`${adsRows}`);
 
-  res.status(201).json({'cid': cid});
+    for (row of adsRows) {
+      let baseUrl = row.UnexpandedFinalUrlString;
+      // removes parameters after ignore and, if the url then ends with a lone
+      // ?, it too is removed.
+      const ignore = reportUrl.indexOf('{ignore}');
+      if (ignore !== -1) {
+        baseUrl = baseUrl.slice(0, ignore);
+      }
+      if (baseUrl.endsWith('?')) {
+        baseUrl = baseUrl.slice(0, -1);
+      }
+      row.BaseUrl = baseUrl;
+      row.CID = cid;
+      // Ads reports return percentages as strings with %, so we change them
+      // back to numbers between 0 and 1
+      for (key of Object.keys(row)) {
+        if (typeof row[key] === 'string' &&row[key].endsWith('?')) {
+          row[key] = (row[key].slice(0, -1)) / 100;
+        }
+      }
+    }
+
+    const bigquery = new BigQuery();
+    const table = bigquery.dataset('agency_dashboard').table('ads_data');
+    await table.insert(reportRows, insertHandler);
+    log.info(`Success for ${cid}`);
+
+    res.status(201).json({'cid': cid});
+  } catch (err) {
+    if ('name' in err && err.name === 'PartialFailureError') {
+      for (e of err.errors) {
+        for (e2 of e.errors) {
+          log.error(`BigQuery error: ${e2.message}`);
+        }
+      }
+    }
+    return next(err);
+  }
 });
 
+const PORT = process.env.PORT || 8083;
+app.listen(PORT, () => {
+  log.info(`ads-task-handler started on port ${PORT}`);
+});
