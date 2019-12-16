@@ -15,8 +15,10 @@
     },
     "dependencies": {
         "@google-cloud/bigquery": "^4.5.0",
+        "@google-cloud/logging": "^6.0.0",
         "csv-parse": "^4.8.2",
         "express": "^4.17.1",
-        "request": "^2.88.0"
+        "request": "^2.88.0",
+        "request-promise-native": "^1.0.8"
     }
 }
