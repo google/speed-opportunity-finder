@@ -103,10 +103,13 @@ def export_landing_page_report():
   else:
     start_date = (last_run_date + datetime.timedelta(days=1)).strftime('%Y%m%d')
     today = datetime.date.today().strftime('%Y%m%d')
-    if today >= start_date:
-      logger.error('Last run date either today or corrupt.')
-      raise HTTPError(500, 'Last run date today or corrupt')
-    landing_page_query.During(start_date=start_date, end_date=today)
+    if today < start_date:
+      logger.error('Last run date either today or corrupt (start_date: %s)' % start_date)
+      raise HTTPError(500, 'Last run date today or corrupt (start_date: %s)' % start_date)
+    elif today == start_date:
+      landing_page_query.During(date_range='TODAY')
+    else:
+      landing_page_query.During(start_date=start_date, end_date=today)
   landing_page_query = landing_page_query.Build()
 
   report_downloader = ads_client.GetReportDownloader(version='v201809')
