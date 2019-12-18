@@ -76,6 +76,9 @@ def export_landing_page_report():
                   .document('config').get())
     last_run_date = config_doc.get('last_run')
     last_run_date = datetime.date.fromisoformat(last_run_date)
+    if last_run_date == datetime.date.today():
+      logger.error('Last run date is today.')
+      raise HTTPError(400, 'Last run date today')
   except KeyError:
     logger.info('Last run date not found in firestore document.')
     last_run_date = False
@@ -104,8 +107,11 @@ def export_landing_page_report():
     start_date = (last_run_date + datetime.timedelta(days=1)).strftime('%Y%m%d')
     today = datetime.date.today().strftime('%Y%m%d')
     if today < start_date:
-      logger.error('Last run date either today or corrupt (start_date: %s)' % start_date)
-      raise HTTPError(500, 'Last run date today or corrupt (start_date: %s)' % start_date)
+      logger.error('Last run date either today or corrupt (start_date: %s)',
+                   start_date)
+      raise HTTPError(500,
+                      ('Last run date today or corrupt' +
+                       '(start_date: %s)' % start_date))
     elif today == start_date:
       landing_page_query.During(date_range='TODAY')
     else:
