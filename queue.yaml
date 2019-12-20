@@ -1,0 +1,8 @@
+queue:
+- name: ads-queue
+  target: ads-task-handler
+  rate: 50/s
+
+- name: lh-queue
+  target: lh-task-handler
+  rate: 50/s

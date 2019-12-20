@@ -1,0 +1,4 @@
+runtime: python38
+service: controller-service
+env_variables:
+  APP_LOCATION: "europe-west1"
