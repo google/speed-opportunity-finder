@@ -47,6 +47,7 @@ def export_landing_page_report():
     HTTPError: Used to cause bottle to return a 500 error to the client.
   """
   customer_id = request.query.get('cid')
+  start_date = request.query.get('startdate')
   if not customer_id:
     logger.error('Client customer id (cid) not included in request')
     raise HTTPError(400,
@@ -71,15 +72,6 @@ def export_landing_page_report():
     logger.exception('Unable to load ads credentials.')
     raise HTTPError(500, 'Unable to load Ads credentials.')
 
-  try:
-    config_doc = (storage_client.collection('agency_ads')
-                  .document('config').get())
-    last_run_date = config_doc.get('last_run')
-    last_run_date = datetime.date.fromisoformat(last_run_date)
-  except KeyError:
-    logger.info('Last run date not found in firestore document.')
-    last_run_date = False
-
   ads_client = adwords.AdWordsClient.LoadFromString(ads_credentials)
   landing_page_query = adwords.ReportQueryBuilder()
   # selecting campaign attributes, unexpanded final url, device,
@@ -98,21 +90,26 @@ def export_landing_page_report():
       'PercentageValidAcceleratedMobilePagesClicks', 'SpeedScore',
       'ValuePerConversion', 'VideoViewRate', 'VideoViews')
   landing_page_query.From('LANDING_PAGE_REPORT')
-  if not last_run_date:
-    landing_page_query.During('LAST_30_DAYS')
-  elif last_run_date == datetime.date.today():
-    landing_page_query.During(date_range='TODAY')
+  if not start_date:
+    landing_page_query.During(date_range='LAST_30_DAYS')
   else:
-    start_date = (last_run_date + datetime.timedelta(days=1)).strftime('%Y%m%d')
-    today = datetime.date.today().strftime('%Y%m%d')
-    if today < start_date:
-      logger.error('Last run date either today or corrupt (start_date: %s)',
-                   start_date)
-      raise HTTPError(500,
-                      ('Last run date today or corrupt' +
-                       '(start_date: %s)' % start_date))
+    try:
+      start_date = datetime.date.fromisoformat(start_date)
+      today = datetime.date.today()
+    except ValueError:
+      logger.info('Invalid date passed in startdate parameter.')
+      raise HTTPError(400, 'Invalid date in startdate parameter.')
+    if start_date == datetime.date.today():
+      landing_page_query.During(date_range='TODAY')
     else:
-      landing_page_query.During(start_date=start_date, end_date=today)
+      if today < start_date:
+        logger.error('Last run date in the future (start_date: %s)', start_date)
+        raise HTTPError(400,
+                        'startdate in the future (start_date: %s)' % start_date)
+
+      landing_page_query.During(start_date=start_date.strftime('%Y%m%d'),
+                                end_date=today.strftime('%Y%m%d'))
+
   landing_page_query = landing_page_query.Build()
 
   report_downloader = ads_client.GetReportDownloader(version='v201809')
