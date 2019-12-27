@@ -4,6 +4,7 @@
 TODO(adamread): DO NOT SUBMIT without a detailed description of main.
 """
 
+import datetime
 import logging
 import os
 import time
@@ -60,25 +61,46 @@ def start_update():
     selector = {'fields': ['CustomerId']}
     result = mcc_service.get(selector)
     for record in result.links:
-      cids.append(record.clientCustomerId)
+      cids.append(str(record.clientCustomerId))
   except:
     logger.exception('Exception while getting CIDs')
     raise HTTPError(500, 'Exception while getting CIDs')
 
   try:
+    config_doc = storage_client.collection('agency_ads').document('config')
+    config_doc_snapshot = config_doc.get()
+    last_run_dates = config_doc_snapshot.get('last_run')
+  except google.cloud.exceptions.NotFound:
+    logger.exception('Exception retrieving last run dates.')
+    raise HTTPError(500, 'Config document not found in firestore')
+  except KeyError:
+    logger.info('Last tun dates not in firestore.')
+    last_run_dates = {}
+
+  try:
     task_client = google.cloud.tasks.CloudTasksClient()
     ads_queue_path = task_client.queue_path(project_name, project_location,
                                             'ads-queue')
+    today = datetime.date.today().isoformat()
     for cid in cids:
+      if cid in last_run_dates:
+        task_url = (f'http://ads-task-handler.{project_name}.appspot.com?' +
+                    f'cid={cid}&startdate={last_run_dates[cid]}')
+      else:
+        task_url = (f'http://ads-task-handler.{project_name}.appspot.com' +
+                    f'?cid={cid}')
       task = {
           'http_request': {
               'http_method': 'GET',
-              'url': f'http://ads-task-handler.{project_name}.appspot.com?cid={cid}'
+              'url': task_url
           }
       }
       task_client.create_task(ads_queue_path, task)
+      config_doc.update({
+          f'last_run.{cid}': today
+      })
   except:
-    logger.exception('Exception queing ads queries.')
+    logger.exception(f'Exception queing ads queries (url = {task_url})')
     raise HTTPError(500, 'Exception queing ads queries.')
 
   # polling the queue to ensure all the URLs are available before starting the
@@ -100,15 +122,18 @@ def start_update():
 
   try:
     lh_queue_path = task_client.queue_path(project_name, project_location,
-                                           'lh_queue')
+                                           'lh-queue')
     for row in query_reaponse:
       url = row['BaseUrl']
       task = {
           'http_request': {
-              'http_methon': 'GET',
+              'http_method': 'GET',
               'url': f'http://lh_service.{project_name}.appspot.com?url={url}'}
       }
       task_client.create_task(lh_queue_path, task)
   except:
     logger.exception('Excpetion queue lh tasks.')
     raise HTTPError(500, 'Exception queuing lh tasks.')
+
+if __name__ == "__main__":
+  app.run(host='localhost', port=8084)

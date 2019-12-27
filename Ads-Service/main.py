@@ -121,8 +121,5 @@ def export_landing_page_report():
     logger.exception('Problem with retrieving landing page report')
     raise HTTPError(500, 'Unable to retrieve landing page report %s' % e)
 
-  (storage_client.collection('agency_ads').document('config')
-   .update({'last_run': datetime.date.today().isoformat()}))
-
   response.set_header('Content-Type', 'text/csv')
   return landing_page_report

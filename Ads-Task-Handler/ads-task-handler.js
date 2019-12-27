@@ -57,6 +57,7 @@ const REPORT_COLS = {
 
 app.get('*', async (req, res, next) => {
   const cid = req.query.cid;
+  const startDate = req.query.startdate;
   if (!cid) {
     console.error('Missing query parameter');
     res.status(400).json({'error': 'Missing query parameter'});
@@ -65,10 +66,18 @@ app.get('*', async (req, res, next) => {
 
   try {
     const projectName = process.env.GOOGLE_CLOUD_PROJECT;
-    const adsReport = await request(
-        `http://ads-service.${projectName}.appspot.com/ads?cid=${cid}`);
+    requestUrl = `http://ads-service.${projectName}.appspot.com/ads?cid=${cid}`;
+    if (typeof startDate !== 'undefined') {
+      requestUrl += `&startdate=${startDate}`;
+    }
+    const adsReport = await request(requestUrl);
+
     const adsReportRows = parseCsv(adsReport,
         {'columns': true, 'skip_empty_lines': true});
+    if (adsReportRows.length === 0) {
+      res.status(201).json({'cid': cid});
+      return;
+    }
     const adsRows = [];
     for (reportRow of adsReportRows) {
       const row = {};
