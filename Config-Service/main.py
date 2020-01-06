@@ -1,22 +1,62 @@
+# Lint as: python3
+"""
+ Copyright 2020 Google Inc.
+
+ Licensed under the Apache License, Version 2.0 (the "License");
+ you may not use this file except in compliance with the License.
+ You may obtain a copy of the License at
+
+     http://www.apache.org/licenses/LICENSE-2.0
+
+ Unless required by applicable law or agreed to in writing, software
+ distributed under the License is distributed on an "AS IS" BASIS,
+ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ See the License for the specific language governing permissions and
+ limitations under the License.
+"""
+"""This module provides a service for adding credentials to the agency dashboard.
+
+The module is used in conjunction with the rest of the agency dashboard solution
+to provide the credentials required to acccess the Ads accounts that will be the
+basis for reporting.
+
+This must be deployed as part of the agency dashboad Google Cloud AppEngine app.
+Optionaly, this component can be left out of the deployment and the required
+credentials can be inserted manually into the project firestore store.
+
+The required credentials must be located in a document stored at
+/agency_ads/credentials and have the following fields:
+- mcc_id: the account id of the management account to be used with the app
+- client_id: the client ID created in the Google API console
+- client_secret: the client secret generated with the above client id
+- developer_token: the developer token for the account to be used with the app
+- refresh_token: an oauth2 refresh token generated using the client id and
+secret above
+"""
+
+import logging
+import os
+
 from bottle import Bottle
-from bottle import route
-from bottle import template
-from bottle import request
+from bottle import HTTPError
 from bottle import redirect
-from google.cloud import firestore
+from bottle import request
+from bottle import template
+from google_auth_oauthlib.flow import InstalledAppFlow
+from oauthlib.oauth2.rfc6749.errors import InvalidGrantError
+
 import google.cloud.exceptions
-from google.cloud import error_reporting
-from googleads import oauth2
-import google.oauth2.credentials
-import google_auth_oauthlib.flow
-import json
+import google.cloud.firestore
+import google.cloud.logging
 
 app = Bottle()
-logger = error_reporting.Client()
+logging_client = google.cloud.logging.Client()
+logging_handler = logging_client.get_default_handler()
+logger = logging.getLogger('Config-Service')
+logger.addHandler(logging_handler)
 
-flow = None
 
-def retrieve_client_config():
+def client_config_exists():
   """Retrives the Adwords client configuation from firestore.
 
   Retrieves the Adwords client configuration from firestore if it is available.
@@ -30,75 +70,136 @@ def retrieve_client_config():
     google.cloud.exceptions.NotFound: the client_config document was not in the
     agency_ads collection
   """
-  storage_client = firestore.Client()
+  storage_client = google.cloud.firestore.Client()
   try:
-    storage_collection = storage_client.collection('agency_ads')
-    client_config = storage_collection.document('client_config').get()
-    return client_config
+    client_config = (
+        storage_client.collection('agency_ads').document('credentials').get())
+    try:
+      client_config.get('client_id')
+    except KeyError:
+      return False
   except google.cloud.exceptions.NotFound:
-    logger.report('Unable to load ads credentials.')
-    raise
+    return False
 
-@route('/config')
+  return True
+
+
+@app.route('/config')
 def start_ads_config():
   """This route starts the oauth authentication flow.
 
-  The route first checks for
-  """
-  try:
-    client_config = retrieve_client_config()
-  except google.cloud.exceptions.NotFound:
-    return template('upload_client_config')
+  The route displays a page that allows the user to input the information
+  required
 
-  flow = google_auth_oauthlib.flow.Flow.from_client_config(client_config, scopes=[oauth2.GetAPIScope('adwords')])
-  flow.redirect_uri = 'https://agency-dashboard-v2.appspot.com/end_config'
-  auth_url, state = flow.authorization_url(access_type='offline', include_granted_scopes='true')
+  The route first checks for the existance of the config. If there is an
+  existing config, a message is show to the user to help them avoid writing over
+  it.
+
+  Returns:
+    An html page with fields for entering credentials.
+
+  """
+  return template('start_config', client_config_exists())
+
+
+@app.route('/config_end')
+def end_ads_config():
+  """This route completes the oauth flow and saves the returned refresh token.
+
+  The oauth state saved in the start of the flow is also removed from the
+  credentials doc.
+
+  Returns:
+    On success, an HTML page is returned letting the user know the authorization
+    was successful. On failure, the user is returned the page to enter their
+    credentials with an error message.
+  """
+  storage_client = google.cloud.firestore.Client()
+  try:
+    credentials_doc = (
+        storage_client.collection('agency_ads').document('credentials').get())
+    client_id = credentials_doc.get('client_id')
+    client_secret = credentials_doc.get('client_secret')
+    oauth_state = credentials_doc.get('oauth_state')
+  except (google.cloud.exceptions.NotFound, KeyError):
+    logger.exception('Unable to load ads credentials.')
+    return template(
+        'start_config', error='Error loading credentials after oauth')
+
+  auth_code = request.query.get('auth_code')
+  if not auth_code:
+    return template(
+        'config_complete', error='No authorization code in request.')
+
+  client_config = {
+      'web': {
+          'client_id': client_id,
+          'client_secret': client_secret,
+          'auth_uri': 'https://accounts.google.com/o/oauth2/auth',
+          'token_uri': 'https://accounts.google.com/o/oauth2/token',
+      }
+  }
+  flow = InstalledAppFlow.from_client_config(client_config, state=oauth_state)
+  try:
+    flow.fetch_token(code=auth_code)
+  except InvalidGrantError:
+    logger.exception('Error fetching refresh token after oauth')
+    return template('start_config', error='Error retreiving refresh token.')
+
+  storage_client = google.cloud.firestore.Client()
+  try:
+    credentials_doc = storage_client.collection('agency_ads').document(
+        'credentials')
+    credentials_doc.update({
+        'credentials.refresh_token': flow.credentials.refresh_token,
+        'credentials.oauth_state': google.cloud.firestore.DELETE_FIELD
+    })
+  except google.cloud.exceptions.NotFound:
+    logger.exception('Error finding or updating credentials in firestore.')
+    return template(
+        'start_config', error='Error updating credentials doc in firestore')
+
+  return template('config_complete')
+
+
+@app.route('/config_upload_client', method='POST')
+def save_client_config():
+  """Route used to save the client configuation JSON file to firestore."""
+  mcc_id = request.forms.get('mcc_id')
+  client_id = request.forms.get('client_id')
+  client_secret = request.forms.get('client_secret')
+  developer_token = request.forms.get('developer_token')
+
+  project_name = os.environ['GOOGLE_CLOUD_PROJECT']
+  redirect_uri = f'https://config.{project_name}.appspot.com/config_end'
+
+  client_config = {
+      'web': {
+          'client_id': client_id,
+          'client_secret': client_secret,
+          'auth_uri': 'https://accounts.google.com/o/oauth2/auth',
+          'token_uri': 'https://accounts.google.com/o/oauth2/token',
+          'redirect_uris': [redirect_uri]
+      }
+  }
+  flow = InstalledAppFlow.from_client_config(
+      client_config, scopes=['https://www.googleapis.com/auth/adwords'])
+  auth_url, oauth_state = flow.authorization_url(prompt='consent')
+
+  storage_client = google.cloud.firestore.Client()
+  try:
+    credentials_doc = storage_client.collection('agency_ads').document(
+        'credentials')
+    credentials_content = {
+        'mcc_id': mcc_id,
+        'client_id': client_id,
+        'client_secret': client_secret,
+        'developer_token': developer_token,
+        'oauth_state': oauth_state
+    }
+    credentials_doc.set(credentials_content)
+  except google.cloud.exceptions.NotFound:
+    logger.exception('Unable to find ads credentials.')
+    raise HTTPError(500, 'Unable to find ads credentials.')
 
   redirect(auth_url)
-
-@route('/config_end')
-def end_ads_config():
-  """
-  """
-  auth_code = request.query.get('auth_code')
-  if auth_code == '':
-    return template('config_complete', error='No authorization code in request.')
-
-  if flow is None:
-    return template('config_complete', error='Auth flow not setup. Try starting from config')
-
-  flow.fetch_token(code=auth_code)
-  credentials = flow.credentials
-
-  storage_client = firestore.Client()
-  credentials_doc = storage_client.collection('agency_ads').document('credentials')
-  credentials_doc.set(credentials)
-
-@route('/config_upload_client', method='POST')
-def save_client_config():
-  """ Route used to save the client configuation JSON file to the agency_ads
-  collection in firestore.
-
-  This is the route that is called from the upload_client_config template page.
-  The request must contain a JSON file containing the user's Adwords client
-  config. If the file isn't in the requrest, or if there are problems parsing
-  it, the upload_client_config page is again shown with an error message.
-
-  If everything works, the user is sent through the oauth flow.
-  """
-  config_file = request.files.get('client-config')
-  if config_file == '':
-    logger.report('upload_client_config called without a file.')
-    return template('upload_client_config', error='No file in request.')
-  try:
-    client_config = json.load(config_file.file)
-  except json.JSONDecodeError as ex:
-    logger.report('Error parsing an uploaded client config.')
-    logger.report_exception()
-    return template('upload_client_config', error=ex.msg)
-
-  storage_client = firestore.Client()
-  config_doc = storage_client.collection('agency_ads').document('client_config')
-  config_doc.set(client_config)
-
-  start_ads_config()

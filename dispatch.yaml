@@ -3,3 +3,5 @@ dispatch:
     service: lh-service
   - url: "*/ads"
     service: ads-service
+  - url: "*/config*"
+    service: config-service

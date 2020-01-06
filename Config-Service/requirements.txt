@@ -1,0 +1,5 @@
+bottle
+google_auth_oauthlib
+oauthlib
+google-cloud-firestore
+google-cloud-logging
