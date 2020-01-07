@@ -42,7 +42,8 @@ from bottle import HTTPError
 from bottle import redirect
 from bottle import request
 from bottle import template
-from google_auth_oauthlib.flow import InstalledAppFlow
+from bottle import view
+from google_auth_oauthlib.flow import Flow
 from oauthlib.oauth2.rfc6749.errors import InvalidGrantError
 
 import google.cloud.exceptions
@@ -54,6 +55,9 @@ logging_client = google.cloud.logging.Client()
 logging_handler = logging_client.get_default_handler()
 logger = logging.getLogger('Config-Service')
 logger.addHandler(logging_handler)
+
+project_name = os.environ['GOOGLE_CLOUD_PROJECT']
+redirect_uri = f'https://config-service.{project_name}.appspot.com/config_end'
 
 
 def client_config_exists():
@@ -85,6 +89,7 @@ def client_config_exists():
 
 
 @app.route('/config')
+@view('start_config')
 def start_ads_config():
   """This route starts the oauth authentication flow.
 
@@ -99,7 +104,7 @@ def start_ads_config():
     An html page with fields for entering credentials.
 
   """
-  return template('start_config', client_config_exists())
+  return {'client_config_exists': client_config_exists()}
 
 
 @app.route('/config_end')
@@ -126,10 +131,9 @@ def end_ads_config():
     return template(
         'start_config', error='Error loading credentials after oauth')
 
-  auth_code = request.query.get('auth_code')
+  auth_code = request.query.get('code')
   if not auth_code:
-    return template(
-        'config_complete', error='No authorization code in request.')
+    return template('start_config', error='No authorization code in request.')
 
   client_config = {
       'web': {
@@ -139,7 +143,11 @@ def end_ads_config():
           'token_uri': 'https://accounts.google.com/o/oauth2/token',
       }
   }
-  flow = InstalledAppFlow.from_client_config(client_config, state=oauth_state)
+  flow = Flow.from_client_config(
+      client_config,
+      scopes=['https://www.googleapis.com/auth/adwords'],
+      state=oauth_state)
+  flow.redirect_uri = redirect_uri
   try:
     flow.fetch_token(code=auth_code)
   except InvalidGrantError:
@@ -151,8 +159,8 @@ def end_ads_config():
     credentials_doc = storage_client.collection('agency_ads').document(
         'credentials')
     credentials_doc.update({
-        'credentials.refresh_token': flow.credentials.refresh_token,
-        'credentials.oauth_state': google.cloud.firestore.DELETE_FIELD
+        'refresh_token': flow.credentials.refresh_token,
+        'oauth_state': google.cloud.firestore.DELETE_FIELD
     })
   except google.cloud.exceptions.NotFound:
     logger.exception('Error finding or updating credentials in firestore.')
@@ -170,20 +178,17 @@ def save_client_config():
   client_secret = request.forms.get('client_secret')
   developer_token = request.forms.get('developer_token')
 
-  project_name = os.environ['GOOGLE_CLOUD_PROJECT']
-  redirect_uri = f'https://config.{project_name}.appspot.com/config_end'
-
   client_config = {
       'web': {
           'client_id': client_id,
           'client_secret': client_secret,
           'auth_uri': 'https://accounts.google.com/o/oauth2/auth',
           'token_uri': 'https://accounts.google.com/o/oauth2/token',
-          'redirect_uris': [redirect_uri]
       }
   }
-  flow = InstalledAppFlow.from_client_config(
+  flow = Flow.from_client_config(
       client_config, scopes=['https://www.googleapis.com/auth/adwords'])
+  flow.redirect_uri = redirect_uri
   auth_url, oauth_state = flow.authorization_url(prompt='consent')
 
   storage_client = google.cloud.firestore.Client()
