@@ -1,4 +1,3 @@
-# Lint as: python3
 """
  Copyright 2020 Google Inc.
 
@@ -14,15 +13,16 @@
  See the License for the specific language governing permissions and
  limitations under the License.
 """
-"""This module provides a service for adding credentials to the agency dashboard.
+"""This module provides a service for adding credentials to the agency
+dashboard.
 
 The module is used in conjunction with the rest of the agency dashboard solution
 to provide the credentials required to acccess the Ads accounts that will be the
 basis for reporting.
 
-This must be deployed as part of the agency dashboad Google Cloud AppEngine app.
-Optionaly, this component can be left out of the deployment and the required
-credentials can be inserted manually into the project firestore store.
+This must be deployed as part of the agency dashboard Google Cloud AppEngine
+app. Optionally, this component can be left out of the deployment and the
+required credentials can be inserted manually into the project firestore store.
 
 The required credentials must be located in a document stored at
 /agency_ads/credentials and have the following fields:

@@ -1,5 +1,28 @@
 /**
- * @fileoverview Description of this file.
+ * Copyright 2020 Google Inc.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+/**
+ * @fileoverview This module downloads a landing page report from Google Ads and
+ * saves the contents to bigquery.
+ *
+ * This module is part of the agency dashboard solution. It runs as a web
+ * service targeted by Google Cloud Tasks. The route expects a GET request with
+ * two query parameters:
+ *  - cid: the client id of the account to request the landing page report for
+ *  - startdate: the date to use as the first date in the report
  */
 const express = require('express');
 const parseCsv = require('csv-parse/lib/sync');

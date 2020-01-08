@@ -1,7 +1,28 @@
-# Lint as: python3
-"""TODO(adamread): DO NOT SUBMIT without one-line documentation for main.
+"""
+ Copyright 2020 Google Inc.
 
-TODO(adamread): DO NOT SUBMIT without a detailed description of main.
+ Licensed under the Apache License, Version 2.0 (the "License");
+ you may not use this file except in compliance with the License.
+ You may obtain a copy of the License at
+
+     http://www.apache.org/licenses/LICENSE-2.0
+
+ Unless required by applicable law or agreed to in writing, software
+ distributed under the License is distributed on an "AS IS" BASIS,
+ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ See the License for the specific language governing permissions and
+ limitations under the License.
+"""
+"""This service drives the agency dashboard solution by triggering landing page
+report requests and lighthouse audits.
+
+This module runs as a web service and is designed to be targeted by Google Cloud
+Scheduler. Using credentials stored in firestore, it first requests all of the
+CIDs associated with the stored MCC ID from Ads. Using those CIDs, it creates
+Cloud tasks to have landing page reports retrieved and stored in bigquery. Once
+the landing page report tasks have been completed, it creates tasks to run
+lighthouse audits on all of the URLs in the project's base_urls bigquery table
+and have them stored in bigquery.
 """
 
 import datetime
@@ -104,7 +125,8 @@ def start_update():
     raise HTTPError(500, 'Exception queing ads queries.')
 
   # polling the queue to ensure all the URLs are available before starting the
-  # lighthouse tests. It would be nice to have a better, parllel way to do this.
+  # lighthouse tests. It would be nice to have a better, parallel way to do
+  # this.
   ads_queue_size = True
   while ads_queue_size:
     time.sleep(30)
@@ -115,7 +137,7 @@ def start_update():
     bigquery_client = google.cloud.bigquery.Client()
     url_query = f'''SELECT BaseUrl
                    FROM `{project_name}.agency_dashboard.base_urls`'''
-    query_reaponse = bigquery_client.query(url_query)
+    query_response = bigquery_client.query(url_query)
   except:
     logger.exception('Exception querying for URLs')
     raise HTTPError(500, 'Exception querying for URLs')
@@ -123,7 +145,7 @@ def start_update():
   try:
     lh_queue_path = task_client.queue_path(project_name, project_location,
                                            'lh-queue')
-    for row in query_reaponse:
+    for row in query_response:
       url = row['BaseUrl']
       task = {
           'http_request': {
