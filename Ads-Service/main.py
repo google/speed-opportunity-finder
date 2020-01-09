@@ -60,8 +60,8 @@ def export_landing_page_report():
   Raises:
     HTTPError: Used to cause bottle to return a 500 error to the client.
   """
-  customer_id = request.query.get('cid')
-  start_date = request.query.get('startdate')
+  customer_id = request.params.get('cid')
+  start_date = request.params.get('startdate')
   if not customer_id:
     logger.error('Client customer id (cid) not included in request')
     raise HTTPError(400,
@@ -70,14 +70,13 @@ def export_landing_page_report():
   storage_client = firestore.Client()
 
   try:
-    credentials_doc = (storage_client.collection('agency_ads')
-                       .document('credentials').get())
+    credentials_doc = (
+        storage_client.collection('agency_ads').document('credentials').get())
     developer_token = credentials_doc.get('developer_token')
     client_id = credentials_doc.get('client_id')
     client_secret = credentials_doc.get('client_secret')
     refresh_token = credentials_doc.get('refresh_token')
-    ads_credentials = ('adwords:\n' +
-                       f' client_customer_id: {customer_id}\n'
+    ads_credentials = ('adwords:\n' + f' client_customer_id: {customer_id}\n' +
                        f' developer_token: {developer_token}\n' +
                        f' client_id: {client_id}\n' +
                        f' client_secret: {client_secret}\n' +
@@ -91,9 +90,9 @@ def export_landing_page_report():
   # selecting campaign attributes, unexpanded final url, device,
   # date, and all of the landing page metrics.
   landing_page_query.Select(
-      'CampaignId', 'CampaignName, CampaignStatus',
-      'UnexpandedFinalUrlString', 'Date', 'Device', 'ActiveViewCpm',
-      'ActiveViewCtr', 'ActiveViewImpressions', 'ActiveViewMeasurability',
+      'CampaignId', 'CampaignName, CampaignStatus', 'UnexpandedFinalUrlString',
+      'Date', 'Device', 'ActiveViewCpm', 'ActiveViewCtr',
+      'ActiveViewImpressions', 'ActiveViewMeasurability',
       'ActiveViewMeasurableCost', 'ActiveViewMeasurableImpressions',
       'ActiveViewViewability', 'AllConversions', 'AverageCost', 'AverageCpc',
       'AverageCpe', 'AverageCpm', 'AverageCpv', 'AveragePosition', 'Clicks',
@@ -121,16 +120,20 @@ def export_landing_page_report():
         raise HTTPError(400,
                         'startdate in the future (start_date: %s)' % start_date)
 
-      landing_page_query.During(start_date=start_date.strftime('%Y%m%d'),
-                                end_date=today.strftime('%Y%m%d'))
+      landing_page_query.During(
+          start_date=start_date.strftime('%Y%m%d'),
+          end_date=today.strftime('%Y%m%d'))
 
   landing_page_query = landing_page_query.Build()
 
   report_downloader = ads_client.GetReportDownloader(version='v201809')
   try:
-    landing_page_report = (report_downloader.DownloadReportAsStringWithAwql(
-        landing_page_query, 'CSV', skip_report_header=True,
-        skip_report_summary=True))
+    landing_page_report = (
+        report_downloader.DownloadReportAsStringWithAwql(
+            landing_page_query,
+            'CSV',
+            skip_report_header=True,
+            skip_report_summary=True))
   except Exception as e:
     logger.exception('Problem with retrieving landing page report')
     raise HTTPError(500, 'Unable to retrieve landing page report %s' % e)
