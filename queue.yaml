@@ -16,10 +16,16 @@
 # dashboard solution.
 
 queue:
-- name: ads-queue
+- name: ads-queue-2
   target: ads-task-handler
   rate: 50/s
+  retry_parameters:
+    task_retry_limit: 3
+    task_age_limit: 12h
 
-- name: lh-queue
+- name: lh-queue-2
   target: lh-task-handler
   rate: 50/s
+  retry_parameters:
+    task_retry_limit: 3
+    task_age_limit: 12h
