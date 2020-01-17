@@ -1,0 +1,97 @@
+[
+  {
+    "mode": "REQUIRED",
+    "name": "date",
+    "type": "DATETIME"
+  },
+  {
+    "mode": "REQUIRED",
+    "name": "url",
+    "type": "STRING"
+  },
+  {
+    "mode": "NULLABLE",
+    "name": "lhscore",
+    "type": "FLOAT"
+  },
+  {
+    "mode": "NULLABLE",
+    "name": "first_contentful_paint",
+    "type": "FLOAT"
+  },
+  {
+    "mode": "NULLABLE",
+    "name": "first_meaningful_paint",
+    "type": "FLOAT"
+  },
+  {
+    "mode": "NULLABLE",
+    "name": "speed_index",
+    "type": "FLOAT"
+  },
+  {
+    "mode": "NULLABLE",
+    "name": "estimated_input_latency",
+    "type": "FLOAT"
+  },
+  {
+    "mode": "NULLABLE",
+    "name": "total_blocking_time",
+    "type": "FLOAT"
+  },
+  {
+    "mode": "NULLABLE",
+    "name": "max_potential_fid",
+    "type": "FLOAT"
+  },
+  {
+    "mode": "NULLABLE",
+    "name": "time_to_first_byte",
+    "type": "FLOAT"
+  },
+  {
+    "mode": "NULLABLE",
+    "name": "first_cpu_idle",
+    "type": "FLOAT"
+  },
+  {
+    "mode": "NULLABLE",
+    "name": "interactive",
+    "type": "FLOAT"
+  },
+  {
+    "mode": "NULLABLE",
+    "name": "mainthread_work_breakdown",
+    "type": "FLOAT"
+  },
+  {
+    "mode": "NULLABLE",
+    "name": "bootup_time",
+    "type": "FLOAT"
+  },
+  {
+    "mode": "NULLABLE",
+    "name": "network_requests",
+    "type": "FLOAT"
+  },
+  {
+    "mode": "NULLABLE",
+    "name": "network_rtt",
+    "type": "FLOAT"
+  },
+  {
+    "mode": "NULLABLE",
+    "name": "network_server_latency",
+    "type": "FLOAT"
+  },
+  {
+    "mode": "NULLABLE",
+    "name": "total_byte_weight",
+    "type": "FLOAT"
+  },
+  {
+    "mode": "NULLABLE",
+    "name": "dom_size",
+    "type": "FLOAT"
+  }
+]
