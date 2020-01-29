@@ -46,5 +46,9 @@
     <input type="text" name="developer_token" size=25 required>
   </label>
   <br>
+  <label>
+    <input type="text" name="psi_api_token" size="45" required>
+  </label>
+  <br>
   <input type="submit" value="Start OAuth Flow">
 </form>

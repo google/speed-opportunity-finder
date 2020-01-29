@@ -172,11 +172,12 @@ def end_ads_config():
 
 @app.route('/config_upload_client', method='POST')
 def save_client_config():
-  """Route used to save the client configuation JSON file to firestore."""
+  """Route used to save the client configuration JSON file to firestore."""
   mcc_id = request.forms.get('mcc_id')
   client_id = request.forms.get('client_id')
   client_secret = request.forms.get('client_secret')
   developer_token = request.forms.get('developer_token')
+  psi_api_token = request.forms.get('psi_api_token')
 
   client_config = {
       'web': {
@@ -200,6 +201,7 @@ def save_client_config():
         'client_id': client_id,
         'client_secret': client_secret,
         'developer_token': developer_token,
+        'psi_api_token': psi_api_token,
         'oauth_state': oauth_state
     }
     credentials_doc.set(credentials_content)

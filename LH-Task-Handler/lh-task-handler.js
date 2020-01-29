@@ -25,6 +25,7 @@ const express = require('express');
 const {BigQuery} = require('@google-cloud/bigquery');
 const request = require('request-promise-native');
 const {Logging} = require('@google-cloud/logging');
+const Firestore = require('@google-cloud/firestore');
 
 const app = express();
 app.enable('trust proxy');
@@ -65,20 +66,27 @@ app.get('*', async (req, res, next) => {
   }
 
   try {
-    const projectName = process.env.GOOGLE_CLOUD_PROJECT;
-    const lhAudit = await request(
-        `http://lh-service.${projectName}.appspot.com/lh?url=${testUrl}`,
-        {json: true});
+    const firestore = new Firestore();
+    const credentialDoc = firestore.doc('agency_ads/credentials');
+    const credentialSnapshot = await credentialDoc.get();
+    const psiApiKey = credentialSnapshot.get('psi_api_key');
 
-    log.info(lhAudit);
+    const apiUrl = 'https://www.googleapis.com/pagespeedonline/v5/runPagespeed';
+    const stdParams = `category=performance&strategy=mobile&key=${psiApiKey}`;
+    const requestUrl = `${apiUrl}?url=${testUrl}&${stdParams}`;
+
+    const psiResult = await request(requestUrl, {json: true});
+    if ('error' in psiResult) {
+      log.error(`Lighthouse Error: ${psiResult.error.message}`);
+      return next(psiResult.error);
+    }
+    const lhAudit = psiResult.lighthouseResult;
+
     const row = {
-      date: lhAudit.fetchTime,
+      date: lhAudit.fetchTime.slice(0, 10),
       url: lhAudit.finalUrl,
       lhscore: lhAudit.categories.performance.score,
     };
-    if (row.date.endsWith('Z')) {
-      row.date = row.date.slice(0, -1);
-    }
     for (a of Object.keys(AUDITS)) {
       row[AUDITS[a]] = lhAudit.audits[a].numericValue;
     }
@@ -89,8 +97,10 @@ app.get('*', async (req, res, next) => {
     log.info(`Success for ${testUrl}`);
     res.status(201).json({'url': testUrl});
   } catch (err) {
-    const foo = err.errors[0].row;
-    console.error(`ERROR CAUGHT: ${foo}`);
+    console.error(`LH Task ERROR: ${err.message}`);
+    if ('errors' in err) {
+      console.error(`ERROR CAUGHT: ${err.errors[0].row}`);
+    }
     if ('name' in err && err.name === 'PartialFailureError') {
       for (e of err.errors) {
         for (e2 of e.errors) {

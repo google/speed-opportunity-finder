@@ -14,6 +14,7 @@
  limitations under the License.
 """
 """This service drives the agency dashboard solution by triggering landing page
+
 report requests and lighthouse audits.
 
 This module runs as a web service and is designed to be targeted by Google Cloud
@@ -29,6 +30,7 @@ import datetime
 import logging
 import os
 import time
+import urllib
 
 from bottle import Bottle
 from bottle import HTTPError
@@ -65,29 +67,27 @@ def queue_cids_for_mcc(mcc_id):
     mcc_id:
   """
   ads_client.SetClientCustomerId(mcc_id)
-  mcc_service = ads_client.GetService('ManagedCustomerService',
-                                      version='v201809')
-  selector = {'fields': ['CustomerId', 'CanManageClients']}
+  mcc_service = ads_client.GetService(
+      'ManagedCustomerService', version='v201809')
+  selector = {'fields': ['CustomerId', 'Name', 'CanManageClients']}
   result = mcc_service.get(selector)
   for record in result.entries:
     if record.customerId == mcc_id:
-      next
+      continue
     elif record.canManageClients:
       queue_cids_for_mcc(record.customerId)
     else:
-      if record.customerId in last_run_dates:
-        task_url = (f'http://ads-task-handler.{project_name}.appspot.com?' +
-                    f'cid={record.customerId}&' +
-                    f'startdate={last_run_dates[record.customerId]}')
-      else:
+      try:
         task_url = (f'http://ads-task-handler.{project_name}.appspot.com' +
-                    f'?cid={record.customerId}')
-        task = {
-            'http_request': {
-                'http_method': 'GET',
-                'url': task_url
-            }
-        }
+                    f'?cid={record.customerId}&' +
+                    f'name={urllib.parse.quote(record.name)}')
+        if record.customerId in last_run_dates:
+          task_url += f'&startdate={last_run_dates[record.customerId]}'
+        task = {'http_request': {'http_method': 'GET', 'url': task_url}}
+      except TypeError:
+        logger.exception('Error creating task_url for record %s - %s',
+                         record.customerId, record.name)
+        continue
       try:
         task_client.create_task(ads_queue_path, task)
         config_doc.update({f'last_run.{record.customerId}': today})
@@ -98,20 +98,18 @@ def queue_cids_for_mcc(mcc_id):
 
 @app.route('/')
 def start_update():
-  """This route triggers the process of updating the ads and lighthouse data.
-  """
+  """This route triggers the process of updating the ads and lighthouse data."""
 
   try:
     storage_client = google.cloud.firestore.Client()
-    credentials_doc = (storage_client.collection('agency_ads')
-                       .document('credentials').get())
+    credentials_doc = (
+        storage_client.collection('agency_ads').document('credentials').get())
     mcc_id = credentials_doc.get('mcc_id')
     developer_token = credentials_doc.get('developer_token')
     client_id = credentials_doc.get('client_id')
     client_secret = credentials_doc.get('client_secret')
     refresh_token = credentials_doc.get('refresh_token')
-    ads_credentials = ('adwords:\n' +
-                       f' client_customer_id: {mcc_id}\n' +
+    ads_credentials = ('adwords:\n' + f' client_customer_id: {mcc_id}\n' +
                        f' developer_token: {developer_token}\n' +
                        f' client_id: {client_id}\n' +
                        f' client_secret: {client_secret}\n' +
@@ -142,9 +140,8 @@ def start_update():
     global task_client
     task_client = google.cloud.tasks.CloudTasksClient()
     global ads_queue_path
-    ads_queue_path = task_client.queue_path(project_name,
-                                            project_location,
-                                            'ads-queue-2')
+    ads_queue_path = task_client.queue_path(project_name, project_location,
+                                            'ads-queue')
   except:
     logger.exception('Exception creating tasks client')
     raise HTTPError(500, 'Exception creating tasks client.')
@@ -175,61 +172,21 @@ def start_update():
 
   try:
     lh_queue_path = task_client.queue_path(project_name, project_location,
-                                           'lh-queue-2')
+                                           'lh-queue')
     for row in query_response:
-      url = row['BaseUrl']
+      url = urllib.parse.quote(row['BaseUrl'])
       task = {
           'http_request': {
-              'http_method': 'GET',
-              'url': f'http://lh_service.{project_name}.appspot.com?url={url}'}
+              'http_method':
+                  'GET',
+              'url':
+                  f'http://lh-task-handler.{project_name}.appspot.com?url={url}'
+          }
       }
       task_client.create_task(lh_queue_path, task)
   except:
     logger.exception('Excpetion queue lh tasks.')
     raise HTTPError(500, 'Exception queuing lh tasks.')
-
-
-@app.route('/mcc_data')
-def get_mcc_data():
-  try:
-    storage_client = google.cloud.firestore.Client()
-    credentials_doc = (storage_client.collection('agency_ads')
-                       .document('credentials').get())
-    mcc_id = credentials_doc.get('mcc_id')
-    developer_token = credentials_doc.get('developer_token')
-    client_id = credentials_doc.get('client_id')
-    client_secret = credentials_doc.get('client_secret')
-    refresh_token = credentials_doc.get('refresh_token')
-    ads_credentials = ('adwords:\n' +
-                       f' client_customer_id: {mcc_id}\n' +
-                       f' developer_token: {developer_token}\n' +
-                       f' client_id: {client_id}\n' +
-                       f' client_secret: {client_secret}\n' +
-                       f' refresh_token: {refresh_token}')
-    ads_client = adwords.AdWordsClient.LoadFromString(ads_credentials)
-  except google.cloud.exceptions.NotFound:
-    logger.exception('Unable to load ads credentials.')
-    raise HTTPError(500, 'Unable to load Ads credentials.')
-
-  try:
-    ads_client.SetClientCustomerId('7791627427')
-    mcc_service = ads_client.GetService('ManagedCustomerService',
-                                        version='v201809')
-    selector = {'fields': ['CustomerId', 'CanManageClients']}
-    result = mcc_service.get(selector)
-    cids = set()
-    mccids = set()
-    for record in result.entries:
-      if record.canManageClients:
-        mccids.add(record.customerId)
-      else:
-        cids.add(record.customerId)
-
-  except:
-    logger.exception('Exception while getting CIDs')
-    raise HTTPError(500, 'Exception while getting CIDs')
-
-  return str(str(mccids))
 
 
 if __name__ == '__main__':
