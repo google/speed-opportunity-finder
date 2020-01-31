@@ -61,7 +61,7 @@ app.get('*', async (req, res, next) => {
   const testUrl = req.query.url;
   if (!testUrl) {
     log.error('Missing query parameter');
-    res.status(400).json({'error': 'Missing query parameter'});
+    res.status(200).json({'error': 'Missing query parameter'});
     return;
   }
 
@@ -77,7 +77,13 @@ app.get('*', async (req, res, next) => {
 
     const psiResult = await request(requestUrl, {json: true});
     if ('error' in psiResult) {
-      log.error(`Lighthouse Error: ${psiResult.error.message}`);
+      // Task queue will retry any task that doesn't return a 2xx response and
+      // we don't want to retry 404 results
+      if (psiResult.error.message.includes('Status code: 404')) {
+        res.status(200).json({'error': 'Test URL returned 404'});
+        return;
+      }
+      log.error(`Lighthouse Error (${requestUrl}): ${psiResult.error.message}`);
       return next(psiResult.error);
     }
     const lhAudit = psiResult.lighthouseResult;
