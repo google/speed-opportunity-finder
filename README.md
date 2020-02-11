@@ -44,24 +44,26 @@ There are a number of credentials required to use the agency dashboard solution.
 
 # Installation
 1. create a new Google Cloud project
-2. create a new app engine application
-3. enable bigquery for the project
-4. enable firestore in native mode for the project.
-5. enable cloud tasks api for the project.
-5. in the cloud console, clone the source repository
-6. set the value of `APP_LOCATION` to the region you deployed the app to in
-   the file *Controller-Service/service.yaml*
-6. run the install shell script
-7. enter the credentials on the *config-service/config* page
-8. ping the controller URL to test the set up and gather initial data (see
-   Usage)
-9. Set the cloud project firewall rules to only allow access to the services,
-   excepting the config service, from the app itself. This will ensure outside
-   actors are not using the project resources or adding unwanted data to the
-   project.
-10. set the cron job to gather data on a regular basis (suggested not more often
-   than daily)
-11. attach datastudio project to bigquery tables for creating reports
+1. create a new app engine application
+1. enable bigquery for the project
+1. enable firestore in native mode for the project.
+1. enable cloud tasks api for the project.
+1. enable the PageSpeed Insights API for the project.
+1. create an API key for the [Pagespeed Insights API](https://developers.google.com/speed/docs/insights/v5/get-started#key)
+1. in the cloud console, clone the source repository
+1. set the value of `APP_LOCATION` to the region you deployed the app to in
+  the file *Controller-Service/service.yaml*
+1. run the install shell script
+1. enter the credentials on the *config-service/config* page
+1. ping the controller URL to test the set up and gather initial data (see
+  Usage)
+1. Set the cloud project firewall rules to only allow access to the services,
+  excepting the config service, from the app itself. This will ensure outside
+  actors are not using the project resources or adding unwanted data to the
+  project.
+1. set the cron job to gather data on a regular basis (suggested not more often
+  than daily)
+1. attach datastudio project to bigquery tables for creating reports
 
 # Usage
 To test the installation (step 8 above), open the URL
