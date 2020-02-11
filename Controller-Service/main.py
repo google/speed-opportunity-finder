@@ -60,43 +60,38 @@ last_run_dates = None
 config_doc = None
 
 
-def queue_cids_for_mcc(mcc_id):
-  """Queues the report tasks for the cids under the given mcc.
+def get_cids(mcc_id):
+  """Fetches all of the cids under the given mcc recursively.
+
+  The cids are placed in a set because it's possible to have a client attached
+  to multiple mccs.
 
   Args:
-    mcc_id:
+    mcc_id: the mcc to get the client accounts for.
+
+  Returns:
+    A set of all of the client ids under the given mcc.
   """
+  cids = set()
   ads_client.SetClientCustomerId(mcc_id)
   mcc_service = ads_client.GetService(
       'ManagedCustomerService', version='v201809')
   selector = {'fields': ['CustomerId', 'Name', 'CanManageClients']}
   result = mcc_service.get(selector)
+
   for record in result.entries:
     if record.customerId == mcc_id:
       continue
     elif record.canManageClients:
-      queue_cids_for_mcc(record.customerId)
+      cids.update(get_cids(record.customerId))
     else:
-      try:
-        task_url = (f'http://ads-task-handler.{project_name}.appspot.com' +
-                    f'?cid={record.customerId}&' +
-                    f'name={urllib.parse.quote(record.name)}')
-        if record.customerId in last_run_dates:
-          task_url += f'&startdate={last_run_dates[record.customerId]}'
-        task = {'http_request': {'http_method': 'GET', 'url': task_url}}
-      except TypeError:
-        logger.exception('Error creating task_url for record %s - %s',
-                         record.customerId, record.name)
-        continue
-      try:
-        task_client.create_task(ads_queue_path, task)
-        config_doc.update({f'last_run.{record.customerId}': today})
-      except:
-        logger.exception(f'Exception queing ads queries (url = {task_url})')
-        raise
+      cids.add((record.customerId, record.name))
+
+  return cids
 
 
 @app.route('/')
+@app.route('/controller')
 def start_update():
   """This route triggers the process of updating the ads and lighthouse data."""
 
@@ -147,10 +142,31 @@ def start_update():
     raise HTTPError(500, 'Exception creating tasks client.')
 
   try:
-    queue_cids_for_mcc(mcc_id)
+    cids = get_cids(mcc_id.replace('-', ''))
   except:
-    logger.exception('Exception while queuing landing page reports')
-    raise HTTPError(500, 'Exception while queuing landing page reports')
+    logger.exception('Exception while getting cids')
+    raise HTTPError(500, 'Exception while getting cids')
+  for client in cids:
+    try:
+      cid = client[0]
+      client_name = client[1]
+      task_url = (f'http://ads-task-handler.{project_name}.appspot.com' +
+                  f'?cid={cid}&' + f'name={urllib.parse.quote(client_name)}')
+      if cid in last_run_dates:
+        task_url += f'&startdate={last_run_dates[cid]}'
+      task = {'http_request': {'http_method': 'GET', 'url': task_url}}
+    except TypeError:
+      logger.exception('Error creating task_url for record %s - %s', cid,
+                       client_name)
+      continue
+    try:
+      task_client.create_task(ads_queue_path, task)
+      config_doc.update({f'last_run.{cid}': today})
+    except (google.api_core.exceptions.GoogleAPICallError,
+            google.api_core.exceptions.RetryError, ValueError):
+      logger.exception(f'Exception queing ads queries (url = {task_url})')
+    except google.cloud.exceptions.NotFound:
+      logger.exception(f'Exception updating ads last_run firebase doc.')
 
   # polling the queue to ensure all the URLs are available before starting the
   # lighthouse tests. It would be nice to have a better, parallel way to do
