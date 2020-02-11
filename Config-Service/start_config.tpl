@@ -46,7 +46,7 @@
     <input type="text" name="developer_token" size=25 required>
   </label>
   <br>
-  <label>
+  <label>PageSpeed Insights API Key
     <input type="text" name="psi_api_token" size="45" required>
   </label>
   <br>
