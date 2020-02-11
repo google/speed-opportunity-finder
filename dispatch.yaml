@@ -19,3 +19,5 @@ dispatch:
     service: ads-service
   - url: "*/config*"
     service: config-service
+  - url: "*/controller"
+    service: controller-service
