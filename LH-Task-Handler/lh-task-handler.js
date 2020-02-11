@@ -80,6 +80,7 @@ app.get('*', async (req, res, next) => {
       // Task queue will retry any task that doesn't return a 2xx response and
       // we don't want to retry 404 results
       if (psiResult.error.message.includes('Status code: 404')) {
+        log.error(`404 returned for ${requestUrl}`);
         res.status(200).json({'error': 'Test URL returned 404'});
         return;
       }
