@@ -80,6 +80,7 @@ const REPORT_COLS = {
 
 app.get('*', async (req, res, next) => {
   const cid = req.query.cid;
+  const name = req.query.name;
   const startDate = req.query.startdate;
   if (!cid) {
     console.error('Missing query parameter');
@@ -119,6 +120,7 @@ app.get('*', async (req, res, next) => {
       }
       row.BaseUrl = baseUrl;
       row.CID = cid;
+      row.ClientName = name;
       // Ads reports return percentages as strings with %, so we change them
       // back to numbers between 0 and 1
       // we also need to change -- to 0 to insert values.
