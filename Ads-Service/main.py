@@ -104,7 +104,7 @@ def export_landing_page_report():
       'ValuePerConversion', 'VideoViewRate', 'VideoViews')
   landing_page_query.From('LANDING_PAGE_REPORT')
   if not start_date:
-    landing_page_query.During(date_range='LAST_30_DAYS')
+    landing_page_query.During(date_range='YESTERDAY')
   else:
     try:
       start_date = datetime.date.fromisoformat(start_date)
