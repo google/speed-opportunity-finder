@@ -131,7 +131,7 @@ function main() {
   local changed_dir
   script_location="${0%/*}"
   if [[ "${0}" != "${script_location}" ]] && [[ -n "${script_location}" ]]; then
-    cd "${script_location}" || echo "Could not cd to script location"; exit 1
+    cd "${script_location}" || (echo "Could not cd to script location"; return 1)
     changed_dir=$(true)
   fi
   #get the project ID and set the default project
