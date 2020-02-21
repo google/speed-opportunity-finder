@@ -144,9 +144,13 @@ function main() {
     err "setting the default cloud project"
   fi
 
+  echo "Checking for required cloud services"
   check_cloud_services
+  echo "Deploying solution app engine services"
   deploy_solutuon_services
+  echo "Creating bigquery tables"
   create_bq_tables
+  echo "Deploying final configuration files"
   deploy_config_files
 
   if [[ "${changed_dir}" ]]; then
