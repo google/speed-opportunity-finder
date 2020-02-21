@@ -18,11 +18,12 @@ used to create reports on how landing page web performance metrics impact Ads
 business metrics.
 
 The data collected comes from [Google Ads](https://ads.google.com) and the
-[Chrome Lighthouse Tool](https://developers.google.com/web/tools/lighthouse). An
-Ads Management account (MCC) is used to determine which Ads accounts are
+[PageSpeed Insights 
+API](https://developers.google.com/speed/docs/insights/v5/get-started).
+An Ads Management account (MCC) is used to determine which Ads accounts are
 included in the data collection. The landing pages from the included accounts
-are audited via Lighthoue. The solution runs on Google App Engine and all of the
-data is stored in BigQuery.
+are audited via PSI. The solution runs on Google App Engine and all of the data 
+is stored in BigQuery.
 
 The BigQuery tables are meant to be used as data sources for
 [DataStudio](https://datastudio.google.com/) dashboards. An example dashboard is
@@ -41,15 +42,21 @@ There are a number of credentials required to use the agency dashboard solution.
   using with the solution. See the [Ads
   documentation](https://developers.google.com/adwords/api/docs/guides/signup)
   for details.
+- PageSpeed Insights API key - this is an API key for using pagespeed insights.
+  This API runs the lighthouse test for you. See the [PageSpeed Insights
+  Documentation](https://developers.google.com/speed/docs/insights/v5/get-started)
+  for details.
 
 # Installation
 1. create a new Google Cloud project
 1. create a new app engine application
+1. enable the Google Ads API for the project
 1. enable bigquery for the project
-1. enable firestore in native mode for the project.
-1. enable cloud tasks api for the project.
-1. enable the PageSpeed Insights API for the project.
-1. create an API key for the [Pagespeed Insights API](https://developers.google.com/speed/docs/insights/v5/get-started#key)
+1. enable firestore in native mode for the project
+1. enable cloud tasks api for the project
+1. enable the PageSpeed Insights API for the project
+1. create an API key for the [Pagespeed Insights 
+API](https://developers.google.com/speed/docs/insights/v5/get-started#key)
 1. in the cloud console, clone the source repository
 1. set the value of `APP_LOCATION` to the region you deployed the app to in
   the file *Controller-Service/service.yaml*
@@ -63,10 +70,10 @@ There are a number of credentials required to use the agency dashboard solution.
   project.
 1. set the cron job to gather data on a regular basis (suggested not more often
   than daily)
-1. attach datastudio project to bigquery tables for creating reports
+1. attach a datastudio project to the bigquery tables for creating reports
 
 # Usage
-To test the installation (step 8 above), open the URL
+To test the installation (step 10 above), open the URL
 `controller-service.PROJECT_ID.appspot.com/` where PROJECT_ID is the id you gave
 the project when you created it. This will start the update process. The URL
 will show as loading until either your browser times out or the update process
