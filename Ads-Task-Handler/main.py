@@ -208,13 +208,17 @@ def export_landing_page_report():
     logger.exception('Problem reading the landing page report: %s', e)
     raise HTTPError(500, 'Unable to read landing page report.')
 
-  try:
-    bq_client = bigquery.Client()
-    bq_table = bq_client.get_table(f'{PROJECT_NAME}.agency_dashboard.ads_data')
-    bq_errors = bq_client.insert_rows(bq_table, ads_rows)
-    if bq_errors:
-      for bqe in bq_errors:
-        logger.error('Error inserting data: %s', bqe['errors'])
-  except ValueError as ve:
-    logger.exception('Problem inserting the data into bq: %s', ve)
-    raise HTTPError(500, 'Unable to insert data into bigquery.')
+  if ads_rows:
+    try:
+      bq_client = bigquery.Client()
+      bq_table = bq_client.get_table(f'{PROJECT_NAME}.agency_dashboard.ads_data')
+      bq_errors = bq_client.insert_rows(bq_table, ads_rows)
+      if bq_errors:
+        for bqe in bq_errors:
+          logger.error('Error inserting data: %s', bqe['errors'])
+    except ValueError as ve:
+      logger.exception('Problem inserting the data into bq: %s', ve)
+      raise HTTPError(500, 'Unable to insert data into bigquery.')
+
+if __name__ == '__main__':
+  app.run(host='localhost', port=8090)
