@@ -1,4 +1,4 @@
 cron:
   - description: "Starts data collection every evening"
     url: /controller
-    schedule: every day 22:00
+    schedule: every day 20:00
