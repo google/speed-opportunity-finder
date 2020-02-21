@@ -15,8 +15,6 @@
 # This file configures the routes required for the agency dashboard solution.
 
 dispatch:
-  - url: "*/ads"
-    service: ads-service
   - url: "*/config*"
     service: config-service
   - url: "*/controller"
