@@ -127,6 +127,13 @@ function deploy_config_files() {
 }
 
 function main() {
+  local script_location
+  local changed_dir
+  script_location="${0%/*}"
+  if [[ "${0}" != "${script_location}" ]] && [[ -n "${script_location}" ]]; then
+    cd "${script_location}" || echo "Could not cd to script location"; exit 1
+    changed_dir=$(true)
+  fi
   #get the project ID and set the default project
   read -rp 'Google Cloud Project ID: ' project_id
   if [[ -z "$project_id" ]]; then
@@ -141,6 +148,10 @@ function main() {
   deploy_solutuon_services
   create_bq_tables
   deploy_config_files
+
+  if [[ "${changed_dir}" ]]; then
+    cd - || echo "Could not change back to original dir."
+  fi
 }
 
 main "$@"
