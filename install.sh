@@ -87,7 +87,7 @@ function create_bq_tables() {
     fi
   done
 
-  if ! bq mk --use-legacy-sql=false --view \
+  if ! bq mk --use_legacy_sql=false --view \
       "SELECT DISTINCT BaseUrl FROM \`${project_id}.agency_dashboard.ads_data\` \
        WHERE Cost > 0" \
        agency_dashboard.base_urls; then
