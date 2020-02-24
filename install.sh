@@ -124,7 +124,7 @@ function main() {
   fi
 
   echo "Deploying solution app engine services"
-  deploy_solutuon_services
+  deploy_solution_services
   echo "Creating bigquery tables"
   create_bq_tables
   echo "Deploying final configuration files"
