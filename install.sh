@@ -67,7 +67,7 @@ function create_bq_tables() {
   local bq_datasets
   bq_datasets=$(bq ls)
 
-  if ! [[ "${bq_entities}" =~ agency_dashboard ]]; then
+  if ! [[ "${bq_datasets}" =~ agency_dashboard ]]; then
     if ! bq mk --dataset \
         --description "Agency dashboard data" \
         "${project_id}":agency_dashboard; then
