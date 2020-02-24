@@ -18,11 +18,11 @@ used to create reports on how landing page web performance metrics impact Ads
 business metrics.
 
 The data collected comes from [Google Ads](https://ads.google.com) and the
-[PageSpeed Insights 
+[PageSpeed Insights
 API](https://developers.google.com/speed/docs/insights/v5/get-started).
 An Ads Management account (MCC) is used to determine which Ads accounts are
 included in the data collection. The landing pages from the included accounts
-are audited via PSI. The solution runs on Google App Engine and all of the data 
+are audited via PSI. The solution runs on Google App Engine and all of the data
 is stored in BigQuery.
 
 The BigQuery tables are meant to be used as data sources for
@@ -54,14 +54,16 @@ There are a number of credentials required to use the agency dashboard solution.
 1. enable bigquery for the project
 1. enable firestore in native mode for the project
 1. enable cloud tasks api for the project
+1. enable cloud scheduler for the project
 1. enable the PageSpeed Insights API for the project
-1. create an API key for the [Pagespeed Insights 
-API](https://developers.google.com/speed/docs/insights/v5/get-started#key)
+1. create an API key for the [Pagespeed Insights
+   API](https://developers.google.com/speed/docs/insights/v5/get-started#key)
 1. in the cloud console, clone the source repository
 1. set the value of `APP_LOCATION` to the region you deployed the app to in
   the file *Controller-Service/service.yaml*
 1. run the install shell script
-1. enter the credentials on the *config-service/config* page
+1. enter the credentials on the *config-service/config* page of your deployed
+   app.
 1. ping the controller URL to test the set up and gather initial data (see
   Usage)
 1. Set the cloud project firewall rules to only allow access to the services,
