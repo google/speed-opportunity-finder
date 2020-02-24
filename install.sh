@@ -23,30 +23,9 @@ set -eu
 # Prints the standard error message and exits.
 #######################################
 function err() {
-  echo "[$(date +'%Y-%m-%dT%H:%M:%S%z')]: Error $*. Please check the output 
+  echo "[$(date +'%Y-%m-%dT%H:%M:%S%z')]: Error $*. Please check the output
 above this and address the issue before trying again." >&2
   exit 1
-}
-
-#######################################
-# Checks that the services required for the solution are enabled for the current
-# project.
-#######################################
-function check_cloud_services() {
-  declare -a required_services
-  required_services=("bigquery" "cloudscheduler" "cloudtasks" "firestore")
-  required_services+=("googleads" "logging" "pagespeedonline")
-
-  enabled_services=$(gcloud services list)
-
-  local service
-  for service in "${required_services[@]}"; do
-    line_count=$(grep -c "${service}" <<< "${enabled_services}")
-    if [[ "${line_count}" == 0 ]]; then
-      echo "Please enable the ${service} service and try again." >&2
-      exit 1
-    fi
-  done
 }
 
 #######################################
@@ -71,7 +50,7 @@ function deploy_solution_services() {
 
   local service
   for service in "${solution_services[@]}"; do
-    
+
     if ! gcloud app deploy "${service}"/service.yaml; then
       err "deploying ${service} service"
     fi
@@ -109,7 +88,7 @@ function create_bq_tables() {
 #######################################
 # Deploys the configuration files for the solution.
 #
-# The dispatch rules must be deployed before the scheduler rules so that the 
+# The dispatch rules must be deployed before the scheduler rules so that the
 # controller endpoint exists.
 #######################################
 function deploy_config_files() {
@@ -144,8 +123,6 @@ function main() {
     err "setting the default cloud project"
   fi
 
-  echo "Checking for required cloud services"
-  check_cloud_services
   echo "Deploying solution app engine services"
   deploy_solutuon_services
   echo "Creating bigquery tables"
