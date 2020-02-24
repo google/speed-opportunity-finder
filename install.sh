@@ -64,8 +64,8 @@ function create_bq_tables() {
   declare -a solution_tables
   solution_tables=("ads_data" "lh_data")
 
-  local bq_entities
-  bq_entities=$(bq ls)
+  local bq_datasets
+  bq_datasets=$(bq ls)
 
   if ! [[ "${bq_entities}" =~ agency_dashboard ]]; then
     if ! bq mk --dataset \
@@ -75,9 +75,12 @@ function create_bq_tables() {
     fi
   fi
 
+  local bq_tables
+  bq_tables=$(bq ls agency_dashboard)
+
   local table
   for table in "${solution_tables[@]}"; do
-    if ! [[ "${bq_entities}" =~ $table ]]; then
+    if ! [[ "${bq_tables}" =~ $table ]]; then
       if ! bq mk --table agency_dashboard."${table}" schemas/"${table}".json; then
         err "creating bigquery table ${table}"
       fi
