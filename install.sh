@@ -44,14 +44,14 @@ function deploy_solution_services() {
       exit 1
     fi
   fi
-  if ! gcloud app deploy Default-Service/service.yaml; then
+  if ! gcloud app deploy -q Default-Service/service.yaml; then
     err "deploying Default-Service"
   fi
 
   local service
   for service in "${solution_services[@]}"; do
 
-    if ! gcloud app deploy "${service}"/service.yaml; then
+    if ! gcloud app deploy -q "${service}"/service.yaml; then
       err "deploying ${service} service"
     fi
   done
@@ -92,15 +92,15 @@ function create_bq_tables() {
 # controller endpoint exists.
 #######################################
 function deploy_config_files() {
-  if ! gcloud app deploy queue.yaml; then
+  if ! gcloud app deploy -q queue.yaml; then
     err "deploying task queues"
   fi
 
-  if ! gcloud app deploy dispatch.yaml; then
+  if ! gcloud app deploy -q dispatch.yaml; then
     err "deploying the dispatch rules"
   fi
 
-  if ! gcloud app deploy cron.yaml; then
+  if ! gcloud app deploy -q cron.yaml; then
     err "deploying scheduled jobs"
   fi
 }
