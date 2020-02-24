@@ -114,7 +114,7 @@ function main() {
     changed_dir=$(true)
   fi
   #get the project ID and set the default project
-  read -rp 'Google Cloud Project ID: ' project_id
+  read -rp 'Please enter your Google Cloud Project ID: ' project_id
   if [[ -z "$project_id" ]]; then
     echo "A project ID is required to continue." >&2
     exit 1
