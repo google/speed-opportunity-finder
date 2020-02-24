@@ -72,7 +72,13 @@ There are a number of credentials required to use the agency dashboard solution.
   project.
 1. set the cron job to gather data on a regular basis (suggested not more often
   than daily)
-1. attach a datastudio project to the bigquery tables for creating reports
+1. attach a Data Studio project to the bigquery tables for creating reports.
+   Follow the steps below to ensure the calculated fields in the data sources
+   are maintained.
+    1. make a copy of the Data Studio data sources and attach them to the
+     appropriate tables from your cloud project
+    1. make a copy of the Data Studio report and attach it to the new data sources
+     you just made.
 
 # Usage
 To test the installation (step 10 above), open the URL
