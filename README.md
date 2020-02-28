@@ -1,3 +1,5 @@
+*This is not an officially supported Google product*
+
 Copyright 2019 Google LLC. This solution, including any related sample code or
 data, is made available on an “as is,” “as available,” and “with all faults”
 basis, solely for illustrative purposes, and without warranty or representation
