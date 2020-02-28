@@ -7,13 +7,13 @@
 # You may obtain a copy of the License at
 #
 #     http://www.apache.org/licenses/LICENSE-2.0
-
+#
 # Unless required by applicable law or agreed to in writing, software
 # distributed under the License is distributed on an "AS IS" BASIS,
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-
+#
 # Installation script for the agency dashboard solution. Please see the included
 # README file for more information.
 
@@ -89,7 +89,8 @@ function create_bq_tables() {
 
   if ! bq mk --use_legacy_sql=false --view \
       "SELECT DISTINCT BaseUrl FROM \`${project_id}.agency_dashboard.ads_data\` \
-       WHERE Cost > 0" \
+       WHERE Cost > 0 \
+       AND Date = (SELECT MAX(Date) FROM \`${project_id}.agency_dashboard.ads_data\`)"
        agency_dashboard.base_urls; then
     err "creating bigquery view"
   fi
