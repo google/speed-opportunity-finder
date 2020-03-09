@@ -97,6 +97,15 @@ app.get('*', async (req, res, next) => {
     for (a of Object.keys(AUDITS)) {
       row[AUDITS[a]] = lhAudit.audits[a].numericValue;
     }
+    // the individual sizes of resources
+    for (part of lhAudit.audits['resource-summary'].details.items) {
+      if (part.resourceType === 'total') {
+        continue;
+      } else {
+        const rowName = part.resourceType.replace('-', '_') + '_size';
+        row[rowName] = part.size;
+      }
+    }
 
     const bqClient = new BigQuery();
     const table = bqClient.dataset('agency_dashboard').table('lh_data');
