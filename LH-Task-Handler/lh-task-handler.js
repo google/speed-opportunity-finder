@@ -75,35 +75,49 @@ app.get('*', async (req, res, next) => {
     const stdParams = `category=performance&strategy=mobile&key=${psiApiKey}`;
     const requestUrl = `${apiUrl}?url=${testUrl}&${stdParams}`;
 
-    const psiResult = await request(requestUrl, {json: true});
-    if ('error' in psiResult) {
-      // Task queue will retry any task that doesn't return a 2xx response and
-      // we don't want to retry 404 results
-      if (psiResult.error.message.includes('Status code: 404')) {
-        log.error(`404 returned for ${requestUrl}`);
-        res.status(200).json({'error': 'Test URL returned 404'});
-        return;
-      }
-      log.error(`Lighthouse Error (${requestUrl}): ${psiResult.error.message}`);
-      return next(psiResult.error);
-    }
-    const lhAudit = psiResult.lighthouseResult;
+    let psiResult = undefined;
+    const row = {};
 
-    const row = {
-      date: lhAudit.fetchTime.slice(0, 10),
-      url: lhAudit.finalUrl,
-      lhscore: lhAudit.categories.performance.score,
-    };
-    for (a of Object.keys(AUDITS)) {
-      row[AUDITS[a]] = lhAudit.audits[a].numericValue;
+    try {
+      psiResult = await request(requestUrl, {json: true});
+    } catch (error) {
+      psiError = JSON.parse(error.message.slice(6));
+      if ('error' in psiError) {
+        const today = new Date();
+        row.date = today.toISOString().slice(0, 10);
+        row.url = testUrl;
+        // If the page returned an error, we store the error code.
+        // If PSI returns an error, we set the error code to -2 if the quota was
+        // exceeeded or to -1 for everything else.
+        if (psiError.error.message.includes('Status code')) {
+          row.error_code = psiError.error.message
+              .match(/Status code: (\d+)/)[1];
+        } else if (psiError.error.code === 429) {
+          row.error_code = -2;
+        } else {
+          row.error_code = -1;
+        }
+        row.error_message = psiError.error.message;
+
+        log.error(`Lighthouse Error (${requestUrl}): ${psiError.error.message}`);
+      }
     }
-    // the individual sizes of resources
-    for (part of lhAudit.audits['resource-summary'].details.items) {
-      if (part.resourceType === 'total') {
-        continue;
-      } else {
-        const rowName = part.resourceType.replace('-', '_') + '_size';
-        row[rowName] = part.size;
+    if (psiResult) {
+      const lhAudit = psiResult.lighthouseResult;
+      row.date = lhAudit.fetchTime.slice(0, 10);
+      row.url = testUrl;
+      row.lhscore = lhAudit.categories.performance.score;
+      for (a of Object.keys(AUDITS)) {
+        row[AUDITS[a]] = lhAudit.audits[a].numericValue;
+      }
+      // the individual sizes of resources
+      for (part of lhAudit.audits['resource-summary'].details.items) {
+        if (part.resourceType === 'total') {
+          continue;
+        } else {
+          const rowName = part.resourceType.replace('-', '_') + '_size';
+          row[rowName] = part.size;
+        }
       }
     }
 
