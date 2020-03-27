@@ -64,8 +64,8 @@ There are a number of credentials required to use the agency dashboard solution.
 1. set the value of `APP_LOCATION` to the region you deployed the app to in
   the file *Controller-Service/service.yaml*
 1. run the install shell script
-1. enter the credentials on the *config-service/config* page of your deployed
-   app.
+1. enter the credentials on the *config* page of your deployed
+   app. This should be located at `https://config-service.<YOUR_PROJECT>.appspot.com/config`.
 1. ping the controller URL to test the set up and gather initial data (see
   Usage)
 1. Set the cloud project firewall rules to only allow access to the services,
