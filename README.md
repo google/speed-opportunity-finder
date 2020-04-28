@@ -34,7 +34,7 @@ for the end client being targeted.
 
 # Credentials
 There are a number of credentials required to use the agency dashboard solution.
-- Managemennt Account ID - this is the ID of the management account (MCC) that
+- Management Account ID - this is the ID of the management account (MCC) that
   the solution will pull reports for.
 - Client ID & Client Secret - these are the credentials created for the Cloud
   project for the Ads API. See the [Adwords API
@@ -44,7 +44,7 @@ There are a number of credentials required to use the agency dashboard solution.
   using with the solution. See the [Ads
   documentation](https://developers.google.com/adwords/api/docs/guides/signup)
   for details.
-- PageSpeed Insights API key - this is an API key for using pagespeed insights.
+- PageSpeed Insights API key - this is an API key for using PageSpeed insights.
   This API runs the lighthouse test for you. See the [PageSpeed Insights
   Documentation](https://developers.google.com/speed/docs/insights/v5/get-started)
   for details.
@@ -53,12 +53,12 @@ There are a number of credentials required to use the agency dashboard solution.
 1. create a new Google Cloud project
 1. create a new app engine application
 1. enable the Google Ads API for the project
-1. enable bigquery for the project
+1. enable BigQuery for the project
 1. enable firestore in native mode for the project
-1. enable cloud tasks api for the project
+1. enable cloud tasks API for the project
 1. enable cloud scheduler for the project
 1. enable the PageSpeed Insights API for the project
-1. create an API key for the [Pagespeed Insights
+1. create an API key for the [PageSpeed Insights
    API](https://developers.google.com/speed/docs/insights/v5/get-started#key)
 1. in the cloud console, clone the source repository
 1. set the value of `APP_LOCATION` to the region you deployed the app to in
@@ -74,7 +74,7 @@ There are a number of credentials required to use the agency dashboard solution.
   project.
 1. set the cron job to gather data on a regular basis (suggested not more often
   than daily)
-1. attach a Data Studio project to the bigquery tables for creating reports.
+1. attach a Data Studio project to the BigQuery tables for creating reports.
    Follow the steps below to ensure the calculated fields in the data sources
    are maintained.
     1. make a copy of the Data Studio data sources and attach them to the

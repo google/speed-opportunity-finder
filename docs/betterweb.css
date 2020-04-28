@@ -1,0 +1,50 @@
+@import url('https://fonts.googleapis.com/css?family=Roboto:300,400,500,400italic|Google+Sans:400,500,400italic|Google+Sans+Display|Material+Icons&display=swap');
+
+body {
+  font-family: 'Roboto', sans-serif;
+  font-size: 16pt;
+  color: #3c4043;
+  padding: 2%;
+  margin-left: 6%;
+  margin-right: 6%;
+}
+
+div.header {
+  display: grid;
+  background: #4285f4;  
+  grid-template-columns: 10vw auto;
+}
+
+.logo {
+  grid-column-start: 1;
+}
+
+.title {
+  grid-column-start: 2;
+}
+
+h1 {
+  font-family: 'Google Sans Display', sans-serif;
+  font-size: 60pt;
+  color: #fff;
+}
+
+h2 {
+  font-family: 'Google Sans Display', sans-serif;
+  font-size: 48pt;
+  color: #3c4043;
+}
+
+h3 {
+  font-family: 'Google Sans', sans-serif;
+  font-size: 36pt;
+  color: #9aa0a6;
+}
+
+li {
+  margin-bottom: 8pt;
+}
+
+li img {
+  vertical-align: middle;
+}
