@@ -10,17 +10,26 @@ body {
 }
 
 div.header {
-  display: grid;
-  background: #4285f4;  
-  grid-template-columns: 10vw auto;
+  display: flex;
+  background: #4285f4;
+  justify-content: space-around;
+  padding: 0;
+  margin: 0;
 }
 
 .logo {
-  grid-column-start: 1;
+  padding: 5px;
+  width: 20%;
+  margin: auto;
+  margin-left: 10px;
+  max-height: 195px;
+  max-width: 195px;
 }
 
 .title {
-  grid-column-start: 2;
+  padding: 5px;
+  margin: auto;
+  margin-left: 10px;
 }
 
 h1 {
