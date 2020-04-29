@@ -68,6 +68,13 @@
         mode, or are trying to reuse a project where Datastore mode is already
         in use, you will need to create a new project.<br>
         <img src="./images/firestore_native.png" alt="Choose Firestore native mode" width="40%">
+      </li>
+      <li>
+        Enable the Cloud Tasks API for the project. From the APIs & Services
+        Library, select the Cloud Tasks API and then click on the <em>ENABLE
+        </em> button on the API details page.<br>
+        <img src="./images/select_cloud_tasks.png" alt="Choose the Cloud Tasks API" width="40%">
+      </li>
     </ol>
 
     <h3>Deploying the solution</h3>
@@ -79,7 +86,8 @@
       <li>
         In the file <em>Controller-Service/service.yaml</em>, set the value of
         <code>APP_LOCATION</code> to the region you selected when creating the
-        app engine app.
+        app engine app. If you aren't sure which region you chose, you can use
+        command <code>$ gcloud config list</code>.
       </li>
       <li>
         In the cloud console, run the install shell script:
