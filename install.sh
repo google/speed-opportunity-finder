@@ -90,7 +90,7 @@ function create_bq_tables() {
   if ! bq mk --use_legacy_sql=false --view \
       "SELECT DISTINCT BaseUrl FROM \`${project_id}.agency_dashboard.ads_data\` \
        WHERE Cost > 0 \
-       AND Date = (SELECT MAX(Date) FROM \`${project_id}.agency_dashboard.ads_data\`)"
+       AND Date = (SELECT MAX(Date) FROM \`${project_id}.agency_dashboard.ads_data\`)" \
        agency_dashboard.base_urls; then
     err "creating bigquery view"
   fi
