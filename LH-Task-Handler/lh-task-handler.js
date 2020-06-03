@@ -69,7 +69,7 @@ app.get('*', async (req, res, next) => {
     const firestore = new Firestore();
     const credentialDoc = firestore.doc('agency_ads/credentials');
     const credentialSnapshot = await credentialDoc.get();
-    const psiApiKey = credentialSnapshot.get('psi_api_key');
+    const psiApiKey = credentialSnapshot.get('psi_api_token');
 
     const apiUrl = 'https://www.googleapis.com/pagespeedonline/v5/runPagespeed';
     const stdParams = `category=performance&strategy=mobile&key=${psiApiKey}`;
