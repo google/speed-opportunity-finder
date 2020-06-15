@@ -108,7 +108,15 @@ app.get('*', async (req, res, next) => {
       row.url = testUrl;
       row.lhscore = lhAudit.categories.performance.score;
       for (a of Object.keys(AUDITS)) {
-        row[AUDITS[a]] = lhAudit.audits[a].numericValue;
+        try {
+          row[AUDITS[a]] = lhAudit.audits[a].numericValue;
+        } catch (e) {
+          if (e instanceof TypeError) {
+            log.error(`Problem accessing ${a} in the PSI audit object.`);
+          } else {
+            throw e;
+          }
+        }
       }
       // the individual sizes of resources
       for (part of lhAudit.audits['resource-summary'].details.items) {

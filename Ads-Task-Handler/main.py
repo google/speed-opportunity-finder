@@ -15,16 +15,12 @@
 """
 """This service retrieves and forwards landing page reports in CSV format.
 
-The Ads service provides a way to fetch Ads landing page reports and return them
-in CSV format to the caller. The credentials used must be saved previously in
-the app engine project's firestore datastore using the agency-ads collection,
-config document, and credentials field. The last_run field is also used to store
-the last date the report was fetched.
+The Ads-Task-Handler downloads the landing page report for the Google Ads
+account with the given CID. The report is then enriched with the name provided,
+
 """
 
-import csv
 import datetime
-import io
 import logging
 import os
 
@@ -141,6 +137,7 @@ def export_landing_page_report():
   # date, and all of the landing page metrics.
   landing_page_query.Select(','.join(REPORT_COLS.values()))
   landing_page_query.From('LANDING_PAGE_REPORT')
+  landing_page_query.Where('Status').In('ENABLED', 'PAUSED')
   if not start_date:
     landing_page_query.During(date_range='YESTERDAY')
   else:
@@ -167,7 +164,7 @@ def export_landing_page_report():
   report_downloader = ads_client.GetReportDownloader(version='v201809')
   try:
     landing_page_report = (
-        report_downloader.DownloadReportAsStringWithAwql(
+        report_downloader.DownloadReportAsStreamWithAwql(
             landing_page_query,
             'CSV',
             skip_report_header=True,
@@ -176,10 +173,21 @@ def export_landing_page_report():
     logger.exception('Problem with retrieving landing page report')
     raise HTTPError(500, 'Unable to retrieve landing page report %s' % e)
 
+  ads_cols = []
   ads_rows = []
   try:
-    report_reader = csv.DictReader(io.StringIO(landing_page_report))
-    for report_row in report_reader:
+    while True:
+      report_line = landing_page_report.readline()
+      if not report_line: break
+
+      report_line = report_line.decode()
+      report_row = report_line.split(',')
+
+      if not ads_cols:
+        ads_cols = report_row
+        continue
+
+      report_row = dict(zip(ads_cols, report_row))
       # replace row keys
       report_row = {REPORT_COLS[key]: val for key, val in report_row.items()}
       base_url = report_row['UnexpandedFinalUrlString']
@@ -204,9 +212,11 @@ def export_landing_page_report():
           report_row[k] = None
 
       ads_rows.append(report_row)
-  except csv.Error as e:
+  except OSError as e:
     logger.exception('Problem reading the landing page report: %s', e)
     raise HTTPError(500, 'Unable to read landing page report.')
+  finally:
+    landing_page_report.close()
 
   if ads_rows:
     try:

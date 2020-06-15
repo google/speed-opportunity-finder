@@ -44,48 +44,40 @@ import google.cloud.tasks
 
 app = Bottle()
 
-logging_client = google.cloud.logging.Client()
-logging_handler = logging_client.get_default_handler()
-logger = logging.getLogger('Controller-Service')
-logger.addHandler(logging_handler)
 
-project_name = os.environ['GOOGLE_CLOUD_PROJECT']
-project_location = os.environ['APP_LOCATION']
-today = datetime.date.today().isoformat()
-
-ads_client = None
-task_client = None
-ads_queue_path = None
-last_run_dates = None
-config_doc = None
-
-
-def get_cids(mcc_id):
-  """Fetches all of the cids under the given mcc recursively.
+def get_cids(ads_client, mcc_id):
+  """Fetches all of the cids under the given mcc.
 
   The cids are placed in a set because it's possible to have a client attached
   to multiple mccs.
 
   Args:
+    ads_client: an instance of AdwordsClient already authenticated for the MCC
+      to be used.
     mcc_id: the mcc to get the client accounts for.
 
   Returns:
     A set of all of the client ids under the given mcc.
   """
   cids = set()
-  ads_client.SetClientCustomerId(mcc_id)
-  mcc_service = ads_client.GetService(
-      'ManagedCustomerService', version='v201809')
-  selector = {'fields': ['CustomerId', 'Name', 'CanManageClients']}
-  result = mcc_service.get(selector)
+  mcc_ids = set()
+  mcc_ids.add(mcc_id)
 
-  for record in result.entries:
-    if record.customerId == mcc_id:
-      continue
-    elif record.canManageClients:
-      cids.update(get_cids(record.customerId))
-    else:
-      cids.add((record.customerId, record.name))
+  while mcc_ids:
+    current_mcc = mcc_ids.pop()
+    ads_client.SetClientCustomerId(current_mcc)
+    mcc_service = ads_client.GetService(
+        'ManagedCustomerService', version='v201809')
+    selector = {'fields': ['CustomerId', 'Name', 'CanManageClients']}
+    result = mcc_service.get(selector)
+
+    for record in result.entries:
+      if record.customerId == mcc_id:
+        continue
+      elif record.canManageClients:
+        mcc_ids.add(record.customerId)
+      else:
+        cids.add((record.customerId, record.name))
 
   return cids
 
@@ -94,6 +86,21 @@ def get_cids(mcc_id):
 @app.route('/controller')
 def start_update():
   """This route triggers the process of updating the ads and lighthouse data."""
+
+  logging_client = google.cloud.logging.Client()
+  logging_handler = logging_client.get_default_handler()
+  logger = logging.getLogger('Controller-Service')
+  logger.addHandler(logging_handler)
+
+  project_name = os.environ['GOOGLE_CLOUD_PROJECT']
+  project_location = os.environ['APP_LOCATION']
+  today = datetime.date.today().isoformat()
+
+  ads_client = None
+  task_client = None
+  ads_queue_path = None
+  last_run_dates = None
+  config_doc = None
 
   try:
     storage_client = google.cloud.firestore.Client()
@@ -109,32 +116,27 @@ def start_update():
                        f' client_id: {client_id}\n' +
                        f' client_secret: {client_secret}\n' +
                        f' refresh_token: {refresh_token}')
-    global ads_client
     ads_client = adwords.AdWordsClient.LoadFromString(ads_credentials)
   except google.cloud.exceptions.NotFound:
     logger.exception('Unable to load ads credentials.')
     raise HTTPError(500, 'Unable to load Ads credentials.')
 
   try:
-    global config_doc
     config_doc = storage_client.collection('agency_ads').document('config')
     config_doc_snapshot = config_doc.get()
-    global last_run_dates
     last_run_dates = config_doc_snapshot.get('last_run')
   except google.cloud.exceptions.NotFound:
     logger.exception('Exception retrieving last run dates.')
     raise HTTPError(500, 'Config document not found in firestore')
   except KeyError:
-    logger.info('Last tun dates not in firestore.')
+    logger.info('Last run dates not in firestore.')
     last_run_dates = {}
   if last_run_dates is None:
     config_doc.create({'last_run': {}})
     last_run_dates = {}
 
   try:
-    global task_client
     task_client = google.cloud.tasks.CloudTasksClient()
-    global ads_queue_path
     ads_queue_path = task_client.queue_path(project_name, project_location,
                                             'ads-queue')
   except:
@@ -142,7 +144,7 @@ def start_update():
     raise HTTPError(500, 'Exception creating tasks client.')
 
   try:
-    cids = get_cids(mcc_id.replace('-', ''))
+    cids = get_cids(ads_client, mcc_id.replace('-', ''))
   except:
     logger.exception('Exception while getting cids')
     raise HTTPError(500, 'Exception while getting cids')
@@ -164,9 +166,9 @@ def start_update():
       config_doc.update({f'last_run.{cid}': today})
     except (google.api_core.exceptions.GoogleAPICallError,
             google.api_core.exceptions.RetryError, ValueError):
-      logger.exception(f'Exception queing ads queries (url = {task_url})')
+      logger.exception('Exception queing ads queries (url = %s)', task_url)
     except google.cloud.exceptions.NotFound:
-      logger.exception(f'Exception updating ads last_run firebase doc.')
+      logger.exception('Exception updating ads last_run firebase doc.')
 
   # polling the queue to ensure all the URLs are available before starting the
   # lighthouse tests. It would be nice to have a better, parallel way to do
