@@ -72,7 +72,7 @@ def get_cids(ads_client, mcc_id):
     result = mcc_service.get(selector)
 
     for record in result.entries:
-      if record.customerId == mcc_id:
+      if str(record.customerId) == mcc_id:
         continue
       elif record.canManageClients:
         mcc_ids.add(record.customerId)
