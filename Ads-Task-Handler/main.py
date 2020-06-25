@@ -83,7 +83,7 @@ REPORT_COLS = {
     'Valid AMP click rate': 'PercentageValidAcceleratedMobilePagesClicks',
     'Mobile speed score': 'SpeedScore',
     'Value / conv.': 'ValuePerConversion',
-    'View rate': 'VideoViewRate',
+    'View rate': 'VideoViewRate'
 }
 
 PROJECT_NAME = os.environ['GOOGLE_CLOUD_PROJECT']
@@ -137,7 +137,6 @@ def export_landing_page_report():
   # date, and all of the landing page metrics.
   landing_page_query.Select(','.join(REPORT_COLS.values()))
   landing_page_query.From('LANDING_PAGE_REPORT')
-  landing_page_query.Where('Status').In('ENABLED', 'PAUSED')
   if not start_date:
     landing_page_query.During(date_range='YESTERDAY')
   else:
@@ -180,7 +179,7 @@ def export_landing_page_report():
       report_line = landing_page_report.readline()
       if not report_line: break
 
-      report_line = report_line.decode()
+      report_line = report_line.decode().replace('\n', '')
       report_row = report_line.split(',')
 
       if not ads_cols:
