@@ -34,6 +34,9 @@ const logging = new Logging(process.env.GOOGLE_CLOUD_PROJECT);
 const log = logging.log('agency-lh-task');
 
 const AUDITS = {
+  'largest-contentful-paint': 'largest_contentful_paint',
+  'total-blocking-time': 'total_blocking_time',
+  'cumulative-layout-shift': 'cumulative_layout_shift',
   'first-contentful-paint': 'first_contentful_paint',
   'first-meaningful-paint': 'first_meaningful_paint',
   'speed-index': 'speed_index',
