@@ -56,10 +56,6 @@ logging_handler = logging_client.get_default_handler()
 logger = logging.getLogger('Config-Service')
 logger.addHandler(logging_handler)
 
-project_name = os.environ['GOOGLE_CLOUD_PROJECT']
-redirect_uri = f'https://config-service.{project_name}.appspot.com/config_end'
-
-
 def client_config_exists():
   """Retrives the Adwords client configuation from firestore.
 
@@ -147,6 +143,9 @@ def end_ads_config():
       client_config,
       scopes=['https://www.googleapis.com/auth/adwords'],
       state=oauth_state)
+
+  req = urllib.parse.urlparse(self.request.url)
+  redirect_uri = f'{req.schema}://{req.hostname}/config_end'
   flow.redirect_uri = redirect_uri
   try:
     flow.fetch_token(code=auth_code)
