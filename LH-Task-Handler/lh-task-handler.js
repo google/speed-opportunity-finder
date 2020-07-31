@@ -43,7 +43,7 @@ const AUDITS = {
   'estimated-input-latency': 'estimated_input_latency',
   'total-blocking-time': 'total_blocking_time',
   'max-potential-fid': 'max_potential_fid',
-  'time-to-first-byte': 'time_to_first_byte',
+  'server-response-time': 'server_response_time',
   'first-cpu-idle': 'first_cpu_idle',
   'interactive': 'interactive',
   'mainthread-work-breakdown': 'mainthread_work_breakdown',
@@ -127,7 +127,7 @@ app.get('*', async (req, res, next) => {
           continue;
         } else {
           const rowName = part.resourceType.replace('-', '_') + '_size';
-          row[rowName] = part.size;
+          row[rowName] = part.transferSize;
         }
       }
     }
