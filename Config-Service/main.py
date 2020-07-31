@@ -36,6 +36,7 @@ secret above
 
 import logging
 import os
+import urllib.parse
 
 from bottle import Bottle
 from bottle import HTTPError
@@ -144,8 +145,8 @@ def end_ads_config():
       scopes=['https://www.googleapis.com/auth/adwords'],
       state=oauth_state)
 
-  req = urllib.parse.urlparse(self.request.url)
-  redirect_uri = f'{req.schema}://{req.hostname}/config_end'
+  req = urllib.parse.urlparse(request.url)
+  redirect_uri = f'{req.scheme}://{req.hostname}/config_end'
   flow.redirect_uri = redirect_uri
   try:
     flow.fetch_token(code=auth_code)
@@ -188,6 +189,8 @@ def save_client_config():
   }
   flow = Flow.from_client_config(
       client_config, scopes=['https://www.googleapis.com/auth/adwords'])
+  req = urllib.parse.urlparse(request.url)
+  redirect_uri = f'{req.scheme}://{req.hostname}/config_end'
   flow.redirect_uri = redirect_uri
   auth_url, oauth_state = flow.authorization_url(prompt='consent')
 
