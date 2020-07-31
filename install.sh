@@ -29,6 +29,22 @@ above this and address the issue before trying again." >&2
 }
 
 #######################################
+# Enables the Google cloud services required for the solution.
+#######################################
+function enable_gcloud_services() {
+  declare -a gcloud_services
+  gcloud_services=("bigquery" "googleads" "cloudtasks" "firestore")
+  gcloud_services+=("pagespeedonline")
+  
+  local gservice
+  for gservice in "${gcloud_services[@]}"; do
+    if ! gcloud services enable "${gservice}".googleapis.com; then
+      err "enabling ${gservice}"
+    fi
+  done
+}
+
+#######################################
 # Deploys the solution's service to app engine.
 #
 # The default service must be deployed first.
@@ -46,6 +62,12 @@ function deploy_solution_services() {
   fi
   if ! gcloud app deploy -q Default-Service/service.yaml; then
     err "deploying Default-Service"
+  fi
+  # the location chosen for the service is needed as a environment variable
+  # in the controller service to add tasks to the task queues.
+  if ! grep -qF 'APP_LOCATION' Controller-Service/service.yaml; then
+    app_location="$(gcloud tasks locations list | awk 'FNR==2 {print $1}')"
+    echo "  APP_LOCATION: ${app_location}" >> Controller-Service/service.yaml
   fi
 
   local service
@@ -87,12 +109,14 @@ function create_bq_tables() {
     fi
   done
 
-  if ! bq mk --use_legacy_sql=false --view \
-      "SELECT DISTINCT BaseUrl FROM \`${project_id}.agency_dashboard.ads_data\` \
-       WHERE Cost > 0 \
-       AND Date = (SELECT MAX(Date) FROM \`${project_id}.agency_dashboard.ads_data\`)" \
-       agency_dashboard.base_urls; then
-    err "creating bigquery view"
+  if ! [[ "${bq_tables}" =~ "base_urls" ]]; then
+    if ! bq mk --use_legacy_sql=false --view \
+        "SELECT DISTINCT BaseUrl FROM \`${project_id}.agency_dashboard.ads_data\` \
+         WHERE Cost > 0 \
+         AND Date = (SELECT MAX(Date) FROM \`${project_id}.agency_dashboard.ads_data\`)" \
+         agency_dashboard.base_urls; then
+      err "creating bigquery view"
+    fi
   fi
 }
 
@@ -134,6 +158,8 @@ function main() {
     err "setting the default cloud project"
   fi
 
+  echo "Enabling Google cloud services"
+  enable_gcloud_services
   echo "Deploying solution app engine services"
   deploy_solution_services
   echo "Creating bigquery tables"
