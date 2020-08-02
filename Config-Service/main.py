@@ -35,7 +35,6 @@ secret above
 """
 
 import logging
-import os
 import urllib.parse
 
 from bottle import Bottle
@@ -56,6 +55,7 @@ logging_client = google.cloud.logging.Client()
 logging_handler = logging_client.get_default_handler()
 logger = logging.getLogger('Config-Service')
 logger.addHandler(logging_handler)
+
 
 def client_config_exists():
   """Retrives the Adwords client configuation from firestore.
@@ -212,3 +212,4 @@ def save_client_config():
     raise HTTPError(500, 'Unable to find ads credentials.')
 
   redirect(auth_url)
+  
