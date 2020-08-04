@@ -62,9 +62,9 @@ To update an exising deployment to Lighthouse v6:
 1. Add the following columns to the lh_data table schema:
   1. `{"name": "largest_contentful_paint","type":"FLOAT","mode":"NULLABLE"}`
   1. `{"name":"cumulative_layout_shift","type":"FLOAT","mode":"NULLABLE"}`
-2. Ensure your Speed Opportuniy Finder project is the active project in your
+1. Ensure your Speed Opportuniy Finder project is the active project in your
 console using `gcloud config set project <YOUR PROJECT ID>`
-3. Run the following command to update the name of time_to_first_byte: 
+1. Run the following command to update the name of time_to_first_byte: 
 ```
     bq query \
     --destination_table agency_dashboard.lh_data \
@@ -76,3 +76,4 @@ console using `gcloud config set project <YOUR PROJECT ID>`
     FROM
       agency_dashboard.lh_data'
 ```
+1. Update the name of the column in your datastudio data sources.
