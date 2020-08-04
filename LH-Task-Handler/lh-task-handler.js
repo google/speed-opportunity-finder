@@ -34,13 +34,16 @@ const logging = new Logging(process.env.GOOGLE_CLOUD_PROJECT);
 const log = logging.log('agency-lh-task');
 
 const AUDITS = {
+  'largest-contentful-paint': 'largest_contentful_paint',
+  'total-blocking-time': 'total_blocking_time',
+  'cumulative-layout-shift': 'cumulative_layout_shift',
   'first-contentful-paint': 'first_contentful_paint',
   'first-meaningful-paint': 'first_meaningful_paint',
   'speed-index': 'speed_index',
   'estimated-input-latency': 'estimated_input_latency',
   'total-blocking-time': 'total_blocking_time',
   'max-potential-fid': 'max_potential_fid',
-  'time-to-first-byte': 'time_to_first_byte',
+  'server-response-time': 'server_response_time',
   'first-cpu-idle': 'first_cpu_idle',
   'interactive': 'interactive',
   'mainthread-work-breakdown': 'mainthread_work_breakdown',
@@ -124,7 +127,7 @@ app.get('*', async (req, res, next) => {
           continue;
         } else {
           const rowName = part.resourceType.replace('-', '_') + '_size';
-          row[rowName] = part.size;
+          row[rowName] = part.transferSize;
         }
       }
     }

@@ -14,7 +14,7 @@
  limitations under the License.
 -->
 
-<h1>Agency Dashboard Configuration</h1>
+<h1 style='color: #4285f4'>Speed Opportunity Finder Configuration</h1>
 % if defined('error'):
   <span style="text-align: center;">
     <p style="color: red;">There was an error with the uploaded configuration:</p>
@@ -30,19 +30,19 @@
 % end
 <form method="POST" enctype="multipart/form-data" action="config_upload_client">
   <h2>Please fill in your credentials:</h2>
-  <label>Management Account ID:
+  <label>Ads Management Account ID:
     <input type="text" name="mcc_id" size=15 required>
   </label>
   <br>
-  <label>Client ID:
+  <label>OAuth Client ID:
     <input type="text" name="client_id" size=75 required>
   </label>
   <br>
-  <label>Client Secret:
+  <label>OAuth Client Secret:
     <input type="text" name="client_secret" size=25 required>
   </label>
   <br>
-  <label>Developer Token:
+  <label>Ads Developer Token:
     <input type="text" name="developer_token" size=25 required>
   </label>
   <br>

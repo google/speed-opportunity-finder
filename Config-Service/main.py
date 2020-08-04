@@ -35,7 +35,7 @@ secret above
 """
 
 import logging
-import os
+import urllib.parse
 
 from bottle import Bottle
 from bottle import HTTPError
@@ -55,9 +55,6 @@ logging_client = google.cloud.logging.Client()
 logging_handler = logging_client.get_default_handler()
 logger = logging.getLogger('Config-Service')
 logger.addHandler(logging_handler)
-
-project_name = os.environ['GOOGLE_CLOUD_PROJECT']
-redirect_uri = f'https://config-service.{project_name}.appspot.com/config_end'
 
 
 def client_config_exists():
@@ -147,6 +144,9 @@ def end_ads_config():
       client_config,
       scopes=['https://www.googleapis.com/auth/adwords'],
       state=oauth_state)
+
+  req = urllib.parse.urlparse(request.url)
+  redirect_uri = f'{req.scheme}://{req.hostname}/config_end'
   flow.redirect_uri = redirect_uri
   try:
     flow.fetch_token(code=auth_code)
@@ -189,6 +189,8 @@ def save_client_config():
   }
   flow = Flow.from_client_config(
       client_config, scopes=['https://www.googleapis.com/auth/adwords'])
+  req = urllib.parse.urlparse(request.url)
+  redirect_uri = f'{req.scheme}://{req.hostname}/config_end'
   flow.redirect_uri = redirect_uri
   auth_url, oauth_state = flow.authorization_url(prompt='consent')
 
@@ -210,3 +212,4 @@ def save_client_config():
     raise HTTPError(500, 'Unable to find ads credentials.')
 
   redirect(auth_url)
+  
