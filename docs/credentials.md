@@ -54,13 +54,14 @@ be:
 1. Configure the consent screen by clicking the button at the top-right of the 
 pane and filling out the form.<br>
 <img src="./images/config_oauth_consent.png" alt="Configure the OAuth consent screen" width="30%">
+
 1. Return to the Credentials page and select **Create credentials** and then 
 **OAuth client ID**
 1. Choose *Web application* as the application type.
 1. Name the client ID
 1. Add the URL to the config service end_config page to the list of authorized 
 redirect URIs. The URI will have the form `https://control-service-dot-
-<defaultHostname>.appspot.com/config_end` If you're not sure of your default 
+&lt;defaultHostname&gt;.appspot.com/config_end` If you're not sure of your default 
 hostname, you can use the command `gcloud app describe` to find it.
 1. Create the **Client ID** and **Client Secret**.
 1. Copy the ID and secret for use in the solution configuration.
@@ -73,7 +74,7 @@ Finder with real accounts.
 You can find your developer token in the Google Ads frontend. Select the *API 
 Center* option from the *Tools &amp; Settings* menu.<br>
 <img src="./images/dev_token_1.jpg" alt="API Center menu item" width="30%">
-
+<br>
 The Developer token should be the first item on the page. If the access level is 
 *Test Account*, please click the link to apply for basic access. The solution 
 will not work without a developer token with access to production accounts.<br>
