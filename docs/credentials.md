@@ -18,25 +18,21 @@ respect to your deployment of any portion of this solution in your systems, or
 usage in connection with your business, if at all.
 -->
 
-# Landing Page Speed Opportunity Finder</h1>
+# Landing Page Speed Opportunity Finder
 
 ## Gathering the required credentials
 
 There are a number of credentials required to use the agency dashboard solution.
 
 <dl>
-  <dt>Management Account ID</dt>
-  <dd>This is the ID of the management account (MCC) that the solution will
-      pull reports for.</dd>
-  <dt>Client ID &amp; Client Secret</dt>
-  <dd>These are the credentials created for the Cloud project for the Ads
-      API.</dd>
-  <dt>Developer Token</dt>
-  <dd>This is a production developer token for the MCC you are using with
-      the solution.</dt>
-  <dt>PageSpeed Insights API key</dt>
-  <dd>This is an API key for using pagespeed insights. This API runs the
-      lighthouse test for you.</li>
+<dt>Management Account ID</dt>
+<dd>This is the ID of the management account (MCC) that the solution will pull reports for.</dd>
+<dt>Client ID &amp; Client Secret</dt>
+<dd>These are the credentials created for the Cloud project for the Ads API.</dd>
+<dt>Developer Token</dt>
+<dd>This is a production developer token for the MCC you are using with the solution.</dt>
+<dt>PageSpeed Insights API key</dt>
+<dd>This is an API key for using pagespeed insights. This API runs the lighthouse test for you.</dd>
 </dl>
 
 ### Finding your MCC ID
