@@ -41,7 +41,7 @@ There are three major steps to installing the Speed Opportunity Finder:
 
 1. [Deploy the solution](./deploy.html) to Google App Engine.
 1. [Gather the required credentials](./credentials.html).
-1. [Complete the deployment](./deployment.html#finish-deployment)
+1. [Complete the deployment](./deploy.html#finish-deployment)
 
 Please look over the [credentials page](./credentials.html) before starting the
 deployment. The requirements for a Ads API devloper key may result in a delay
