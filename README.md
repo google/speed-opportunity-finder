@@ -72,4 +72,5 @@ console using `gcloud config set project <YOUR PROJECT ID>`
     FROM
       agency_dashboard.lh_data'
 ```
-1. Update the name of the column in your datastudio data sources.
+1. Update the name of the column in your datastudio data sources by reconnecting
+the data source.
