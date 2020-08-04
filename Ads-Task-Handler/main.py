@@ -17,10 +17,15 @@
 
 The Ads-Task-Handler downloads the landing page report for the Google Ads
 account with the given CID. The report is then enriched with the name provided,
+the CID, and a base URL for the landing page. The base URL is the landing page
+URL stripped of parameters after {ignore} and any trailing '?' or '/'.
 
+The enriched landing page report is then loaded into the
+agency_dashboard.ads_data biqquery table of the working Google CLoud project.
 """
 
-import datetime
+import csv
+from datetime import datetime
 import logging
 import os
 
@@ -218,16 +223,36 @@ def export_landing_page_report():
     landing_page_report.close()
 
   if ads_rows:
+    csv_file_name = '/tmp/ads_data.' + str(datetime.timestamp(datetime.now()))
+    with open(csv_file_name, 'w', newline='') as csv_file:
+      try:
+        csv_writer = csv.DictWriter(csv_file, fieldnames=ads_cols)
+        csv_writer.writeheader()
+        csv_writer.writerows(ads_rows)
+      except OSError as os_error:
+        logger.exception(
+            'Problem writing the landing page report to a temp file: %s', e)
+        raise HTTPError(500, 'Unable to write landing page report to file.')
     try:
       bq_client = bigquery.Client()
-      bq_table = bq_client.get_table(f'{PROJECT_NAME}.agency_dashboard.ads_data')
-      bq_errors = bq_client.insert_rows(bq_table, ads_rows)
-      if bq_errors:
-        for bqe in bq_errors:
-          logger.error('Error inserting data: %s', bqe['errors'])
-    except ValueError as ve:
-      logger.exception('Problem inserting the data into bq: %s', ve)
-      raise HTTPError(500, 'Unable to insert data into bigquery.')
+      bq_table = bq_client.get_table(
+          f'{PROJECT_NAME}.agency_dashboard.ads_data')
+      bq_job_config = bigquery.LoadJobConfig()
+      bq_job_config.source_format = bigquery.SourceFormat.CSV
+      bq_job_config.skip_leading_rows = 1
+      bq_job_config.autodetect = True
+      with open(csv_file_name, 'rb') as csv_file:
+        try:
+          bq_job = bq_client.load_table_from_file(
+              csv_file, bq_table, job_config=bq_job_config)
+          bq_job_result = bq_job.result()
+        except Exception as ex:
+          logger.exception('Problem loading ads data into bigquery: %s', ex)
+          raise ex
+    except google.cloud.exceptions.GoogleCloudError as gce:
+      logger.exception('Problem loading ads data into bigquery: %s',
+                       gce.message)
+      raise gce
 
 if __name__ == '__main__':
   app.run(host='localhost', port=8090)
