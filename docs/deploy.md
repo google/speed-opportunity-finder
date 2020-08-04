@@ -63,7 +63,7 @@ excepting the config service, from the app itself. This will ensure outside
 actors are not using project resources or adding unwanted data to the BigQuery 
 tables.
 
-** Attaching the dashboard
+## Attaching the dashboard
 
 The final step is to attach the Data Studio dashboard to the backend. Follow
 the steps below to and be sure to copy the data sources first to ensure the
