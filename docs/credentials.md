@@ -24,16 +24,16 @@ usage in connection with your business, if at all.
 
 There are a number of credentials required to use the agency dashboard solution.
 
-<dl>
-<dt>Management Account ID</dt>
-<dd>This is the ID of the management account (MCC) that the solution will pull reports for.</dd>
-<dt>Client ID &amp; Client Secret</dt>
-<dd>These are the credentials created for the Cloud project for the Ads API.</dd>
-<dt>Developer Token</dt>
-<dd>This is a production developer token for the MCC you are using with the solution.</dt>
-<dt>PageSpeed Insights API key</dt>
-<dd>This is an API key for using pagespeed insights. This API runs the lighthouse test for you.</dd>
-</dl>
+
+* **Ads Management Account ID** - This is the ID of the management account (MCC) 
+that the solution will pull reports for.
+* **OAuth Client ID &amp; Client Secret** - These are the credentials created 
+for the Cloud project for the Ads API.
+* **Ads Developer Token** - This is a production developer token for the MCC you 
+are using with the solution.
+* **PageSpeed Insights API key** - This is an API key for using pagespeed 
+insights. This API runs the lighthouse test for you.
+
 
 ### Finding your MCC ID
 
