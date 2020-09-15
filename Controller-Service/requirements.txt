@@ -17,4 +17,4 @@ googleads
 google-cloud-bigquery
 google-cloud-firestore
 google-cloud-logging
-google-cloud-tasks
+google-cloud-tasks==1.5.0
